@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "promiseWakes": {
+    "day": "",
+    "users": []
+  },
+  "history": [],
+  "recall": {},
+  "recallDay": "",
+  "recallToday": 0,
+  "diaryShownT": 0
+}
