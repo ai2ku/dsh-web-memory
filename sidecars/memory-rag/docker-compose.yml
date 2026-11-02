@@ -1,0 +1,35 @@
+# memory-rag Docker 编排：跨终端共享记忆
+# 用法：cd sidecars/memory-rag && docker compose up -d --build
+# 数据：只挂记忆数据子目录（long-memory + persona），源码/配置不进容器数据卷。
+# 远程访问：局域网 {NAS-IP}:8093，token 认证（M5 加固）
+
+services:
+  memory-rag:
+    build: .
+    container_name: memory-rag
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      # 数据目录（容器内 /data，挂载 NAS 磁盘）
+      - MEMORY_RAG_STATE_DIR=/data
+      # 监听 0.0.0.0（远程连接）
+      - MEMORY_RAG_HOST=0.0.0.0
+      # M5：API token 认证（局域网直连）。值来自 .env（gitignore，不进仓库）。
+      # 与项目根 config.json memoryRag.token 保持一致。
+      - MEMORY_RAG_API_TOKEN=${MEMORY_RAG_API_TOKEN}
+    volumes:
+      # 记忆数据持久化：只挂数据子目录（long-memory + persona），源码/配置不暴露。
+      # 数据路径用 MEMORY_RAG_DATA_DIR（缺省 /vol2/1000/docker/memory-rag）。
+      - ${MEMORY_RAG_DATA_DIR:-/vol2/1000/docker/memory-rag}/long-memory:/data/long-memory
+      - ${MEMORY_RAG_DATA_DIR:-/vol2/1000/docker/memory-rag}/persona:/data/persona
+      # 配置（可选，容器内只读）
+      - ./config.yml:/app/config.yml:ro
+    ports:
+      # 局域网访问（安全加固后改 token）
+      - "8093:8093"
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8093/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
