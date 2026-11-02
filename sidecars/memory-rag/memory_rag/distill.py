@@ -214,6 +214,9 @@ class Distiller:
         # （实测一段 4 行的聊天就用掉 597 个输出 token），600 的上限偶尔把 JSON 截断。缺省 1500，
         # 夹到 200～4000，免得配置写错把每次提炼都截断或者白花钱。
         self.max_tokens = int(_clamp(_num(d.get("max_tokens"), 1500), 200, 4000))
+        # 思考型模型（sensenova-6.8-flash-lite）默认思考吃满 max_tokens 导致正文 JSON 截空：
+        # 提炼默认关思考（reasoning_effort:none），与人格判读一致。可配置覆盖。
+        self.reasoning_effort = d.get("reasoning_effort") if d.get("reasoning_effort") is not None else "none"
         price = d.get("price") or {}
         self.price = {"cache_hit": float(price.get("cache_hit", 0.02)),
                       "cache_miss": float(price.get("cache_miss", 1.0)),
@@ -561,6 +564,7 @@ class Distiller:
             "temperature": 0.3,
             "max_tokens": self.max_tokens,  # RAG_PATCH（P3）：可配置，见 __init__
             "stream": False,
+            "reasoning_effort": self.reasoning_effort,  # 关思考（sensenova 默认思考吃满 max_tokens 截断正文）
         }
         try:
             r = self.http.post(f"{base_url}/chat/completions", json=body,
