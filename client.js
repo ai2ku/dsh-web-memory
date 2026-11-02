@@ -83,6 +83,7 @@ window.__ModuleLoader__.load({
 
       // 触发全量重建索引（容器后台任务），轮询进度
       const startRebuild = () => {
+        if (!window.confirm('全量重建会清空向量索引并从存档重新生成，期间语义检索暂时降级为关键词检索。确定？')) return;
         setRebuildErr(''); setRebuildJob({ status: 'starting' });
         fetch(apiUrl('rebuild'), { method: 'POST', headers: { accept: 'application/json' } })
           .then((r) => r.json())
