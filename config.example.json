@@ -1,0 +1,56 @@
+{
+  "projectRoot": "/vol1/@apphome/fn-deepseek-harness/plugins/dsh-web-memory",
+  "stateDir": "/vol1/@apphome/fn-deepseek-harness/plugins/dsh-web-memory/state",
+  "configFile": "/vol1/@apphome/fn-deepseek-harness/plugins/dsh-web-memory/config.json",
+  "crossDevice": {
+    "_comment": "跨端共享记忆的用户标识（单用户场景默认 root）。chat:{userId} 是跨端共享对话，persona:{userId} 是人格，device:{deviceId} 是设备能力。deviceId 留空则用本机 hostname。",
+    "userId": "root",
+    "deviceId": ""
+  },
+  "ownerQQ": 1416567661,
+  "role": {
+    "maxInjectChars": 6000
+  },
+  "memoryRag": {
+    "enabled": true,
+    "url": "http://127.0.0.1:8093",
+    "timeoutMs": 3000,
+    "recall": {
+      "mode": "shadow",
+      "timeoutMs": 400
+    },
+    "suggest": {
+      "mode": "on",
+      "perWake": 3,
+      "maxShows": 2,
+      "ttlHours": 72,
+      "timeoutMs": 300
+    },
+    "token": "<你的容器token>",
+    "allowRemote": true
+  },
+  "decay": {
+    "freezeBelow": 0.5,
+    "reviewCooldownMs": 3600000
+  },
+  "lifeLoop": {
+    "enabled": true,
+    "recallPerDay": 2,
+    "cooldownDays": 7,
+    "promiseWake": {
+      "enabled": true,
+      "at": "10:00",
+      "maxPerDay": 5
+    },
+    "quiet": [
+      3,
+      8
+    ],
+    "associate": {
+      "enabled": true,
+      "cooldownDays": 7,
+      "minAgeDays": 2,
+      "timeoutMs": 1500
+    }
+  }
+}
