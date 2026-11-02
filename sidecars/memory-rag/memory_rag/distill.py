@@ -48,21 +48,21 @@ SYSTEM_PROMPT = """你是聊天记录的提炼器。你会收到一段聊天记�
 10. entities：只取有长期价值的人、地方、东西、话题，名字照原文写；type 只能是 person / place / thing / topic；至多 8 个。
 11. relations：两端必须是 entities 里的名字；relation 是 2～4 个字的关系词；至多 6 条。
 12. notes：这段里值得她长期记住的、关于某个在场的人的事，0～3 条，没有就给 []。每条是
-    {"who": "QQ号", "cat": "trait / fact / event / pending 之一", "text": "一句话", "due": "YYYY-MM-DD 或 null"}。
-    - who 必须是【在场的人】里列出的 QQ 号，不能是她自己。
+    {"who": "在场的人的 userId", "cat": "trait / fact / event / pending 之一", "text": "一句话", "due": "YYYY-MM-DD 或 null"}。
+    - who 必须是【在场的人】里列出的 userId（照原文填，不要编造），不能是她自己。
     - cat：trait = 喜好、习惯、性格；fact = 身份、工作、家人、住处这类长期事实；event = 他经历的、或和她一起经历的要紧事；pending = 约定、打算要做的事、答应过的事（他答应的或她答应的都算）。
     - text：一句具体的话，不超过 60 字；用聊天里的固定称呼，「我」指她自己；经历和约定写上日期（按聊天时间换算成 YYYY-MM-DD）。
     - 除约定外，只记这个人自己说的关于他自己的事；别人议论他、开玩笑、猜测、反问的话都不算。
     - 寒暄和一次性的小事（吃了没、几点睡、发了个表情）不要。
     - due：只有 pending 且聊天里说了时间才填，其它一律 null。
 
-假设【在场的人】里有 平安（123456）。
+假设【在场的人】里有 平安（uid_123）。
 输出结构示例（值换成这段聊天的真实内容）：
 {"title": "周末吃火锅", "summary": "平安说周末想去吃那家重庆火锅，排队也没关系。",
  "importance": 0.6, "valence": 0.3,
  "entities": [{"name": "平安", "type": "person"}, {"name": "重庆火锅", "type": "thing"}],
  "relations": [{"src": "平安", "dst": "重庆火锅", "relation": "想吃"}],
- "notes": [{"who": "123456", "cat": "pending", "text": "平安说周六中午一起去吃那家重庆火锅", "due": "2026-11-01"}]}
+ "notes": [{"who": "uid_123", "cat": "pending", "text": "平安说周六中午一起去吃那家重庆火锅", "due": "2026-11-01"}]}
 """
 
 
@@ -123,6 +123,8 @@ NOTE_CATS = ("trait", "fact", "event", "pending")
 NOTE_MAX = 3
 NOTE_TEXT_MIN, NOTE_TEXT_MAX = 6, 80
 DUE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+# 非用户标识（userId 已通用化，不再是 QQ）：AI 自己、跨设备占位等，不能当「在场的人」记候选。
+NON_USER_IDS = frozenset({"web", "我", "root", "self", "admin", "bot", "system", "undefined", "null"})
 
 
 def _valid_due(due: str) -> bool:
@@ -162,9 +164,9 @@ def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX, _debug: list | N
         who = str(item.get("who") or "").strip()
         cat = str(item.get("cat") or "").strip().lower()
         text = str(item.get("text") or "").strip()
-        # speakers 空（网页会话/归档无 userId 时）信任模型：who 是数字 QQ 就接受；
-        # speakers 非空则仍强制 who 必须在场（防模型记错人，规格 §3.2）。
-        if not (who.isascii() and who.isdigit()) or (speakers and who not in speakers):
+        # userId 已通用化（不再是 QQ）：who 非空、不是非用户保留字即可；
+        # speakers 非空时仍强制 who 必须在场（防模型记错人，规格 §3.2）。
+        if not who or who in NON_USER_IDS or (speakers and who not in speakers):
             if _debug is not None: _debug.append({"drop": "who", "who": who, "cat": cat, "text": text[:80], "speakers": list(speakers)[:10]})
             dropped += 1
             continue
