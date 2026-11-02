@@ -162,7 +162,9 @@ def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX, _debug: list | N
         who = str(item.get("who") or "").strip()
         cat = str(item.get("cat") or "").strip().lower()
         text = str(item.get("text") or "").strip()
-        if not (who.isascii() and who.isdigit()) or who not in speakers:
+        # speakers 空（网页会话/归档无 userId 时）信任模型：who 是数字 QQ 就接受；
+        # speakers 非空则仍强制 who 必须在场（防模型记错人，规格 §3.2）。
+        if not (who.isascii() and who.isdigit()) or (speakers and who not in speakers):
             if _debug is not None: _debug.append({"drop": "who", "who": who, "cat": cat, "text": text[:80], "speakers": list(speakers)[:10]})
             dropped += 1
             continue
