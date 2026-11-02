@@ -141,7 +141,7 @@ def hubs_for_key(key: str) -> set[str]:
     hubs = {SELF}
     k = str(key or "")
     if k.startswith("private:") and k.split(":", 1)[1].isdigit():
-        hubs.add(f"qq:{k.split(':', 1)[1]}")
+        hubs.add(f"user:{k.split(':', 1)[1]}")
     return hubs
 
 
@@ -621,7 +621,7 @@ class L2:
                     (eid, str(e.get("type") or "thing"), str(e.get("name") or ""), str(e.get("norm") or ""),
                      None if e.get("qq") is None else str(e.get("qq")), int(now_ms)),
                 )
-                # 已存在的实体不改类型和名字；只有 qq: 实体的显示名跟着账本走（称呼会改）
+                # 已存在的实体不改类型和名字；只有 user: 实体的显示名跟着账本走（称呼会改）
                 if e.get("qq") is not None:
                     cur.execute("UPDATE entities SET name=? WHERE entity_id=?", (str(e.get("name") or ""), eid))
                 cur.execute("INSERT OR REPLACE INTO summary_entities(summary_id, entity_id, key) VALUES (?,?,?)",
