@@ -400,9 +400,10 @@ window.__ModuleLoader__.load({
               const t = dist.today || {};
               const cost = Number(t.cost);
               out.push(row('提炼今日', `调用 ${t.calls ?? 0} 次（成功 ${t.ok ?? 0}、失败 ${t.failed ?? 0}），花费 ¥${Number.isFinite(cost) ? cost.toFixed(3) : '0.000'}，上限 ${dist.daily_limit ?? '—'} 次/天`));
+              if (t.notes != null || t.notes_dropped != null) out.push(row('候选今日', `抽出 ${t.notes ?? 0} 条 · 校验丢弃 ${t.notes_dropped ?? 0} 条`));
               if (dist.last_error) out.push(row('最近错误', String(dist.last_error)));
               const n = dist.notes || {};
-              if (n.total != null) out.push(row('记忆候选', `${n.total} 条`));
+              if (n.total != null) out.push(row('记忆候选', `${n.total} 条（队列 ${n.queued ?? 0}、失败 ${n.failed ?? 0}）`));
             }
             // 遗忘请求
             const pf = rag.forget_requests || [];
