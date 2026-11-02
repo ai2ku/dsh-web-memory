@@ -94,6 +94,22 @@ window.__ModuleLoader__.load({
           .catch((e) => { setRebuildErr(String(e?.message || e)); setRebuildJob(null); });
       };
 
+      // 立即索引（增量：只处理新消息，不清空）
+      const [indexMsg, setIndexMsg] = React.useState('');
+      const startIndex = () => {
+        setIndexMsg('索引中…');
+        fetch(apiUrl('index'), { method: 'POST', headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((d) => {
+            if (!d.ok) { setIndexMsg('索引失败：' + String(d.error || '')); return; }
+            const res = d.result || {};
+            if (res.skipped) setIndexMsg(String(res.skipped));
+            else if (res.error) setIndexMsg('索引出错：' + res.error);
+            else setIndexMsg(`已索引，新增 ${res.chunks ?? 0} 块`);
+          })
+          .catch((e) => { setIndexMsg('索引失败：' + String(e?.message || e)); });
+      };
+
       const [mem, setMem] = React.useState(null);
       const [memErr, setMemErr] = React.useState('');
       React.useEffect(() => {
@@ -127,7 +143,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { fontSize: '13px', color: '#999' } }, '跨会话 / 跨设备记忆 + 人格'),
         ),
         h('div', { style: { display: 'flex', gap: '6px', marginBottom: '20px' } },
-          tabBtn('overview', '总览'), tabBtn('settings', '设置'), tabBtn('memory', '记忆库'), tabBtn('persona', '人格'),
+          tabBtn('overview', '总览'), tabBtn('settings', '设置'), tabBtn('memory', '记忆库'), tabBtn('persona', '人格'), tabBtn('rag', '向量索引'),
         ),
 
         // 总览
@@ -158,21 +174,6 @@ window.__ModuleLoader__.load({
             // ── memory-rag ──
             h('div', { style: cardStyle },
               h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '记忆服务（memory-rag）'),
-              h('div', { style: { marginBottom: '10px' } },
-                h('button', {
-                  onClick: startRebuild,
-                  disabled: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error',
-                  style: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #4f8cff', background: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#eee' : '#4f8cff', color: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#999' : '#fff', cursor: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? 'not-allowed' : 'pointer', fontSize: '13px' },
-                }, rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '全量重建中…' : '全量重建'),
-                rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error'
-                  ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#4f8cff' } }, `已处理 ${rebuildJob.chunks ?? 0} 块` + (rebuildJob.error ? `（${rebuildJob.error}）` : '…'))
-                  : rebuildJob && rebuildJob.status === 'finished'
-                    ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#4caf50' } }, '重建完成' + (rebuildJob.chunks != null ? `（${rebuildJob.chunks} 块）` : ''))
-                    : rebuildJob && rebuildJob.status === 'error'
-                      ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#e53935' } }, `重建失败：${rebuildJob.error}`)
-                      : null,
-                rebuildErr ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#e53935' } }, rebuildErr) : null,
-              ),
               h('label', { style: fieldLabel }, h('input', { type: 'checkbox', checked: !!cfg.memoryRag.enabled, onChange: (e) => setCfg({ ...cfg, memoryRag: { ...cfg.memoryRag, enabled: e.target.checked } }) }), ' 启用'),
               h('div', { style: fieldLabel },
                 h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '服务地址'),
@@ -344,6 +345,66 @@ window.__ModuleLoader__.load({
               h('pre', { style: { background: '#f8f9fa', borderRadius: '8px', padding: '12px', fontSize: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '300px', overflow: 'auto', margin: '0' } }, mem.personaText),
             ) : null,
           ) : h('p', { style: { fontSize: '13px', color: '#888' } }, '人格状态加载中…'),
+        ) : null,
+
+        // 向量索引（状态 + 立即索引/全量重建）
+        tab === 'rag' ? h('div', { style: cardStyle },
+          h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '向量索引'),
+          h('p', { style: { fontSize: '12px', color: '#999', margin: '0 0 12px' } }, '语义检索用的索引（memory-rag，:8093）。原始存档不会被它改动；索引随时可以删掉重建。'),
+          h('div', { style: { marginBottom: '12px' } },
+            h('button', { onClick: startIndex, style: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #ddd', background: '#fff', color: '#333', cursor: 'pointer', fontSize: '13px', marginRight: '8px' } }, '立即索引'),
+            h('button', {
+              onClick: startRebuild,
+              disabled: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error',
+              style: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #e53935', background: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#eee' : '#e53935', color: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#999' : '#fff', cursor: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? 'not-allowed' : 'pointer', fontSize: '13px' },
+            }, rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '全量重建中…' : '全量重建'),
+            indexMsg ? h('span', { style: { marginLeft: '8px', fontSize: '12px', color: indexMsg.startsWith('索引失败') || indexMsg.startsWith('索引出错') ? '#e53935' : '#4f8cff' } }, indexMsg) : null,
+            rebuildErr ? h('span', { style: { marginLeft: '8px', fontSize: '12px', color: '#e53935' } }, rebuildErr) : null,
+          ),
+          // 状态：来自 /health 的 rag（容器 health）
+          (() => {
+            const rag = health?.rag || {};
+            if (health?.rag?.error) return h('p', { style: { fontSize: '13px', color: '#c00' } }, '状态读取失败：' + health.rag.error);
+            if (rag.off === true) return h('p', { style: { fontSize: '13px', color: '#888' } }, '向量记忆已关闭：检索暂时只走关键词，索引和摘要都还在。');
+            if (!rag || rag.ok === false) return h('p', { style: { fontSize: '13px', color: '#888' } }, rag?.error ? '读取失败：' + rag.error : '加载中…');
+            const emb = rag.embedding || {};
+            const out = [];
+            out.push(row('服务', rag.ok ? '✅ 正常' : '❌ 异常'));
+            if (emb.model_id) out.push(row('向量模型', String(emb.model_id) + (emb.dim ? `（${emb.dim} 维）` : '')));
+            if (rag.mismatch) out.push(h('div', { style: { margin: '8px 0', fontSize: '13px', color: '#c00' } }, '索引口径和配置不一致：' + rag.mismatch + '。点『全量重建』修复。'));
+            const store = rag.store || {};
+            if (store.chunks != null) out.push(row('已索引', `${store.chunks} 块`));
+            if (store.per_key) for (const [k, n] of Object.entries(store.per_key || {})) out.push(row(`  ${k}`, `${n} 块`));
+            const lag = rag.lag_rows || {};
+            const lagKeys = Object.keys(lag);
+            if (lagKeys.length) {
+              if (lagKeys.every((k) => !lag[k])) out.push(row('待索引', '无（都已入库）'));
+              else { out.push(row('待索引', '')); for (const k of lagKeys) out.push(row(`  ${k}`, `${lag[k]} 条`)); }
+            }
+            if (rag.last_index) {
+              const li = rag.last_index;
+              const when = li.at ? new Date(li.at).toLocaleString('zh-CN', { hour12: false }) : '—';
+              out.push(row('最近一次索引', `${when}，新增 ${li.chunks ?? 0} 块` + (li.error ? `，错误：${li.error}` : '')));
+            }
+            const job = rag.job;
+            if (!job) out.push(row('重建任务', '没跑过'));
+            else if (!job.finished_at) out.push(row('重建任务', `进行中（${new Date(job.started_at).toLocaleString('zh-CN', { hour12: false })} 开始）`));
+            else if (job.error) out.push(row('重建任务', `失败：${job.error}`));
+            else out.push(row('重建任务', `完成，新建 ${job.chunks ?? 0} 块`));
+            // 提炼状态
+            const dist = rag.distill;
+            if (dist) {
+              out.push(row('提炼', `摘要 ${dist.summaries ?? 0} · 待提炼 ${dist.pending ?? 0} · 失败 ${dist.failed ?? 0}`));
+              const t = dist.today || {};
+              out.push(row('提炼今日', `调用 ${t.calls ?? 0}/${dist.daily_limit ?? '—'} · 成功 ${t.ok ?? 0} · 失败 ${t.failed ?? 0}`));
+              const n = dist.notes || {};
+              if (n.total != null) out.push(row('记忆候选', `${n.total} 条`));
+            }
+            // 遗忘请求
+            const pf = rag.forget_requests || [];
+            out.push(row('待处理遗忘请求', pf.length ? pf.join('、') : '无'));
+            return h('div', {}, out);
+          })(),
         ) : null,
       );
     }
