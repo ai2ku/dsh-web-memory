@@ -385,7 +385,10 @@ class Distiller:
             "entities": int(st.get("entities", 0)),
             "relations": int(st.get("relations", 0)),
             "today": {"calls": int(today["calls"]), "ok": int(today["ok"]),
-                      "failed": int(today["failed"]), "cost": round(float(today["cost"]), 6)},
+                      "failed": int(today["failed"]), "cost": round(float(today["cost"]), 6),
+                      "notes": int(today.get("notes", 0)),
+                      "notes_dropped": int(today.get("notes_dropped", 0)),
+                      "backfill_calls": int(today.get("backfill_calls", 0))},
             # SUGGEST_PATCH：账本建议的计数（接口约定 §1；只有数字，没有候选原文）
             "notes": (self.l2.notes_counts() if self.l2 else {"total": 0, "queued": 0, "failed": 0}),
             "daily_limit": self.daily_limit,
