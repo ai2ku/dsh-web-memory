@@ -1,0 +1,6 @@
+# dsh-web-memory 插件 entry。
+# id 必须等于插件注册的设置命名空间名（用于 DSH settings 读写）。
+- insert:
+    - id: web-memory
+      name: dsh-web-memory
+      config: {}
