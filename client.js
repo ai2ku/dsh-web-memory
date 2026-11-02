@@ -394,9 +394,13 @@ window.__ModuleLoader__.load({
             // 提炼状态
             const dist = rag.distill;
             if (dist) {
-              out.push(row('提炼', `摘要 ${dist.summaries ?? 0} · 待提炼 ${dist.pending ?? 0} · 失败 ${dist.failed ?? 0}`));
+              out.push(row('提炼', `摘要 ${dist.summaries ?? 0} 条：待提炼 ${dist.pending ?? 0}、失败 ${dist.failed ?? 0}（历史累计失败块）、跳过 ${dist.skipped ?? 0}、向量待补 ${dist.vec_pending ?? 0}`));
+              out.push(row('提炼模型', `${dist.enabled ? '开' : '关'} · ${dist.model || '—'} · 密钥 ${dist.key ? '已配置' : '未配置'}`));
+              if (dist.entities != null || dist.relations != null) out.push(row('关系图', `${dist.entities ?? 0} 个人/物/话题，${dist.relations ?? 0} 条关系`));
               const t = dist.today || {};
-              out.push(row('提炼今日', `调用 ${t.calls ?? 0}/${dist.daily_limit ?? '—'} · 成功 ${t.ok ?? 0} · 失败 ${t.failed ?? 0}`));
+              const cost = Number(t.cost);
+              out.push(row('提炼今日', `调用 ${t.calls ?? 0} 次（成功 ${t.ok ?? 0}、失败 ${t.failed ?? 0}），花费 ¥${Number.isFinite(cost) ? cost.toFixed(3) : '0.000'}，上限 ${dist.daily_limit ?? '—'} 次/天`));
+              if (dist.last_error) out.push(row('最近错误', String(dist.last_error)));
               const n = dist.notes || {};
               if (n.total != null) out.push(row('记忆候选', `${n.total} 条`));
             }
