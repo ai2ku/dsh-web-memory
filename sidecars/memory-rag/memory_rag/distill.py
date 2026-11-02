@@ -4,7 +4,7 @@
 1. **调模型**（不在锁里）：话题块原文 + 在场的人 → 一个 JSON 对象。
 2. **校验**（规格 §4.4）：`title` / `summary` 不合格整条失败；实体名必须在原文里真的出现过
    （防编造，A1-b）；关系两端必须是留下来的实体。
-3. **实体解析**（规格 §4.5）：她 → `self`；在场的人 → `qq:<号>`（换群名片还是同一个点）；
+3. **实体解析**（规格 §4.5）：她 → `self`；在场的人 → `user:<userId>`（换群名片还是同一个点）；
    其它 → `<type>:<规范名>`。
 4. **写库**（在 `ChunkDB.lock` 里）：先核对块还在、原文没变，再写摘要、实体、关系，回填块标题。
 
@@ -703,7 +703,7 @@ class Distiller:
                 ent = {"entity_id": SELF, "type": "person", "name": "我", "norm": normalize_name("我"), "qq": None}
             elif name in by_name and by_name[name]:
                 qq = by_name[name]
-                ent = {"entity_id": f"qq:{qq}", "type": "person", "name": name,
+                ent = {"entity_id": f"user:{qq}", "type": "person", "name": name,
                        "norm": normalize_name(name), "qq": qq}
             else:
                 norm = normalize_name(name)
