@@ -1,0 +1,35 @@
+{
+  "name": "dsh-web-memory",
+  "version": "0.1.0",
+  "description": "DSH Web 原生记忆 + 人格插件：适配原生 Web 会话，跨会话/跨设备共享记忆，保留人格系统",
+  "type": "module",
+  "main": "./lib/index.js",
+  "license": "MIT",
+  "keywords": [
+    "deepseek-harness",
+    "dsh-plugin",
+    "memory",
+    "persona",
+    "cross-device"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime",
+        "@deepseek-ai/dsh-client-ui-settings",
+        "@deepseek-ai/dsh-client-ui-settings-plugins"
+      ]
+    }
+  },
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./client.js",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {}
+}
