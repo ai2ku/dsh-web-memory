@@ -136,12 +136,13 @@ def _valid_due(due: str) -> bool:
     return True
 
 
-def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX) -> tuple[list[dict], int]:
+def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX, _debug: list | None = None) -> tuple[list[dict], int]:
     """SUGGEST_PATCH：把模型给的 `notes` 校验成能写库的候选，返回 (合格列表, 丢弃数)。
 
     纯函数、不抛异常：`notes` 再坏也不能让这次提炼失败——摘要才是主要产物（规格 §3.2）。
     `who` 必须落在本块发言人里；`speakers` 由切块器从 `dir=in` 的消息里取，
     她自己发的（`dir=out`）根本不在里面，所以「必须是发言人」同时挡住了「记成她自己」。
+    `_debug`：传入列表时，每条丢弃记录原因（diagnose 用，不影响正常流程）。
     """
     if not isinstance(raw, list):
         return [], 0  # 字符串 / dict / 缺失都当作「没有候选」，不算丢了一条
@@ -155,23 +156,28 @@ def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX) -> tuple[list[di
     seen_text: set[str] = set()
     for item in raw:
         if not isinstance(item, dict):
+            if _debug is not None: _debug.append({"drop": "not_dict", "item": str(item)[:120]})
             dropped += 1
             continue
         who = str(item.get("who") or "").strip()
         cat = str(item.get("cat") or "").strip().lower()
         text = str(item.get("text") or "").strip()
         if not (who.isascii() and who.isdigit()) or who not in speakers:
+            if _debug is not None: _debug.append({"drop": "who", "who": who, "cat": cat, "text": text[:80], "speakers": list(speakers)[:10]})
             dropped += 1
             continue
         if cat not in NOTE_CATS:
+            if _debug is not None: _debug.append({"drop": "cat", "who": who, "cat": cat, "text": text[:80]})
             dropped += 1
             continue
         if not (NOTE_TEXT_MIN <= len(text) <= NOTE_TEXT_MAX) or "\n" in text or "\r" in text:
+            if _debug is not None: _debug.append({"drop": "text_len", "who": who, "cat": cat, "text": text[:80], "len": len(text)})
             dropped += 1
             continue
         if text in seen_text:  # 同一块里重复的只留一条（不算错，也不计数）
             continue
         if len(out) >= max_notes:
+            if _debug is not None: _debug.append({"drop": "max", "who": who, "cat": cat, "text": text[:80]})
             dropped += 1
             continue
         due = None
@@ -445,7 +451,14 @@ class Distiller:
                 self.last_error = "invalid fields"
                 continue
             # SUGGEST_PATCH：候选只做校验、绝不参与「这次提炼成不成功」的判断（规格 §3.2）
-            notes, notes_dropped = validate_notes(parsed.get("notes"), chunk)
+            _dbg: list = []
+            notes, notes_dropped = validate_notes(parsed.get("notes"), chunk, _debug=_dbg)
+            if _dbg:
+                # 诊断：模型抽到但被校验丢的候选（who/cat/text 原因），容器日志里看
+                import sys as _sys
+                print(f"[distill] notes_dropped={notes_dropped} 明细：", file=_sys.stderr)
+                for d in _dbg[:10]:
+                    print(f"  [distill] {d}", file=_sys.stderr)
             counts["notes_dropped"] += notes_dropped
             result = self._resolve(fields, chunk)
             result["notes"] = notes
