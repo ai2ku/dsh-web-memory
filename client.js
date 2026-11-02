@@ -1,0 +1,258 @@
+// dsh-web-memory 插件 · 前端（左侧独立页面 + 设置）
+// 注册「记忆」左侧导航项（像插件市场），点击打开独立设置页。
+// 参照 dshmarket（sidebar.panellist + main 双注册）和 dsh-qq-bridge（window.__ModuleLoader__）。
+window.__ModuleLoader__.load({
+  id: 'dsh-web-memory',
+  factory: (require) => {
+    const React = require('react');
+    const h = React.createElement;
+
+    // 相对路径：DSH 部署在子路径时由 <base href> 自动补前缀
+    const apiUrl = (p) => new URL('dsh-web-memory/' + p, document.baseURI).href;
+
+    // ── 图标（记忆）──
+    const Icon = ({ size = 16 }) => h('span', { style: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size } },
+      h('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' },
+        h('path', { d: 'M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6v3h8v-3c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z' }),
+        h('path', { d: 'M9 21h6' }),
+      ));
+
+    // ── 设置页主体 ──
+    function Panel() {
+      const [health, setHealth] = React.useState(null);
+      const [err, setErr] = React.useState('');
+      const [tab, setTab] = React.useState('overview');
+      const [cfg, setCfg] = React.useState(null);
+      const [cfgErr, setCfgErr] = React.useState('');
+      const [cfgSaving, setCfgSaving] = React.useState(false);
+      const [cfgSaved, setCfgSaved] = React.useState('');
+
+      React.useEffect(() => {
+        let alive = true;
+        fetch(apiUrl('health'), { headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((d) => { if (alive) setHealth(d); })
+          .catch((e) => { if (alive) setErr(String(e?.message || e)); });
+        return () => { alive = false; };
+      }, []);
+
+      React.useEffect(() => {
+        let alive = true;
+        fetch(apiUrl('config'), { headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((d) => { if (alive) { if (d.ok) setCfg(d.config); else setCfgErr(String(d.error || '加载失败')); } })
+          .catch((e) => { if (alive) setCfgErr(String(e?.message || e)); });
+        return () => { alive = false; };
+      }, []);
+
+      const saveCfg = (patch) => {
+        setCfgSaving(true); setCfgSaved('');
+        fetch(apiUrl('config'), {
+          method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({ config: patch }),
+        })
+          .then((r) => r.json())
+          .then((d) => {
+            setCfgSaving(false);
+            if (d.ok) { setCfgSaved('已保存'); setCfg((c) => c ? { ...c, ...patch } : c); }
+            else setCfgErr(String(d.error || '保存失败'));
+          })
+          .catch((e) => { setCfgSaving(false); setCfgErr(String(e?.message || e)); });
+      };
+
+      const [mem, setMem] = React.useState(null);
+      const [memErr, setMemErr] = React.useState('');
+      React.useEffect(() => {
+        let alive = true;
+        fetch(apiUrl('memory'), { headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((d) => { if (alive) { if (d.ok) setMem(d); else setMemErr(String(d.error || '加载失败')); } })
+          .catch((e) => { if (alive) setMemErr(String(e?.message || e)); });
+        return () => { alive = false; };
+      }, []);
+
+      const cardStyle = { background: '#fff', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,.08)', marginBottom: '16px' };
+      const fieldLabel = { display: 'block', margin: '12px 0', fontSize: '13px', color: '#333' };
+      const inputStyle = { width: '100%', maxWidth: '360px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' };
+      const row = (label, val) => h('div', { style: { margin: '8px 0', display: 'flex', gap: '8px', alignItems: 'center', fontSize: '14px' } },
+        h('span', { style: { minWidth: '110px', color: '#888' } }, label),
+        h('span', {}, val),
+      );
+      const tabBtn = (id, label) => h('button', {
+        onClick: () => setTab(id),
+        style: {
+          padding: '6px 14px', borderRadius: '8px', cursor: 'pointer', border: 'none',
+          fontSize: '13px', fontWeight: 500,
+          background: tab === id ? '#4f8cff' : '#f0f2f5', color: tab === id ? '#fff' : '#555',
+        },
+      }, label);
+
+      return h('div', { style: { padding: '24px', maxWidth: '860px', margin: '0 auto', fontFamily: 'inherit' } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' } },
+          h('span', { style: { fontSize: '20px', fontWeight: 600 } }, '记忆与人格'),
+          h('span', { style: { fontSize: '13px', color: '#999' } }, '跨会话 / 跨设备记忆 + 人格'),
+        ),
+        h('div', { style: { display: 'flex', gap: '6px', marginBottom: '20px' } },
+          tabBtn('overview', '总览'), tabBtn('settings', '设置'), tabBtn('memory', '记忆库'), tabBtn('persona', '人格'),
+        ),
+
+        // 总览
+        tab === 'overview' ? h('div', {},
+          err ? h('div', { style: { color: '#c00', marginBottom: '12px' } }, '状态获取失败：' + err) : null,
+          health ? h('div', { style: cardStyle },
+            h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '运行状态'),
+            row('设备标识', h('code', { style: { fontSize: '12px' } }, String(health.device || '—'))),
+            row('记忆 key', h('code', { style: { fontSize: '12px' } }, String(health.chatKey || '—'))),
+            row('人格 key', h('code', { style: { fontSize: '12px' } }, String(health.personaKey || '—'))),
+            row('记忆条数', String(health.memoryCount ?? '—')),
+            row('服务', health.ragOk ? '✅ memory-rag 连接正常' : (health.ragChecked ? '⚠️ memory-rag 不可达' : '…')),
+          ) : (err ? null : h('div', { style: { color: '#888' } }, '加载中…')),
+          h('div', { style: cardStyle },
+            h('h4', { style: { margin: '0 0 8px', fontSize: '15px' } }, '说明'),
+            h('p', { style: { fontSize: '13px', color: '#666', lineHeight: '1.8', margin: '0' } },
+              '适配 DSH 原生 Web 会话：每条用户消息和 AI 回复都写进记忆存档（chat:root，跨设备共享，带 device 标注来源）。' +
+              '人格系统持续判读你的话，性格/情绪/关系随经历变化。' +
+              '对话中你直接说「记住…」或用 remember 工具即可长期记忆。'),
+          ),
+        ) : null,
+
+        // 设置（真实配置读写）
+        tab === 'settings' ? h('div', {},
+          cfgErr ? h('div', { style: { color: '#c00', marginBottom: '12px' } }, '配置加载/保存失败：' + cfgErr) : null,
+          cfgSaved ? h('div', { style: { color: '#2a7d2a', marginBottom: '12px', fontSize: '13px' } }, cfgSaved) : null,
+          cfg ? h('div', {},
+            // ── memory-rag ──
+            h('div', { style: cardStyle },
+              h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '记忆服务（memory-rag）'),
+              h('label', { style: fieldLabel }, h('input', { type: 'checkbox', checked: !!cfg.memoryRag.enabled, onChange: (e) => setCfg({ ...cfg, memoryRag: { ...cfg.memoryRag, enabled: e.target.checked } }) }), ' 启用'),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '服务地址'),
+                h('input', { value: cfg.memoryRag.url || '', onChange: (e) => setCfg({ ...cfg, memoryRag: { ...cfg.memoryRag, url: e.target.value } }), style: inputStyle, placeholder: 'http://127.0.0.1:8093' }),
+              ),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, 'API Token'),
+                h('input', { type: 'password', placeholder: cfg.memoryRag.hasToken ? ('已设置 ' + cfg.memoryRag.tokenHint + '（留空不变）') : '输入 token', value: cfg.memoryRag._token || '', onChange: (e) => setCfg({ ...cfg, memoryRag: { ...cfg.memoryRag, _token: e.target.value } }), style: inputStyle }),
+              ),
+              h('label', { style: fieldLabel }, h('input', { type: 'checkbox', checked: !!cfg.memoryRag.allowRemote, onChange: (e) => setCfg({ ...cfg, memoryRag: { ...cfg.memoryRag, allowRemote: e.target.checked } }) }), ' 允许远程访问'),
+              h('p', { style: { fontSize: '12px', color: '#999', margin: '8px 0 0' } }, '记忆/人格数据全存容器，改地址/token 后需重启容器生效。'),
+            ),
+            // ── 记忆衰减 ──
+            h('div', { style: cardStyle },
+              h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '记忆衰减'),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '冻结阈值（低于此牢固度不再自动想起）'),
+                h('input', { type: 'number', step: '0.05', min: '0', max: '1', value: cfg.decay.freezeBelow, onChange: (e) => setCfg({ ...cfg, decay: { ...cfg.decay, freezeBelow: Number(e.target.value) } }), style: inputStyle }),
+              ),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '重复想起冷却（毫秒）'),
+                h('input', { type: 'number', step: '60000', value: cfg.decay.reviewCooldownMs, onChange: (e) => setCfg({ ...cfg, decay: { ...cfg.decay, reviewCooldownMs: Number(e.target.value) } }), style: inputStyle }),
+              ),
+            ),
+            // ── 主动唤醒 ──
+            h('div', { style: cardStyle },
+              h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '主动唤醒（到期约定 / 忽然想起）'),
+              h('label', { style: fieldLabel }, h('input', { type: 'checkbox', checked: !!cfg.lifeLoop.enabled, onChange: (e) => setCfg({ ...cfg, lifeLoop: { ...cfg.lifeLoop, enabled: e.target.checked } }) }), ' 启用'),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '每天唤醒上限'),
+                h('input', { type: 'number', min: '1', max: '10', value: cfg.lifeLoop.recallPerDay, onChange: (e) => setCfg({ ...cfg, lifeLoop: { ...cfg.lifeLoop, recallPerDay: Number(e.target.value) } }), style: inputStyle }),
+              ),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '同一条冷却（天）'),
+                h('input', { type: 'number', min: '1', value: cfg.lifeLoop.cooldownDays, onChange: (e) => setCfg({ ...cfg, lifeLoop: { ...cfg.lifeLoop, cooldownDays: Number(e.target.value) } }), style: inputStyle }),
+              ),
+            ),
+            // ── 保存 ──
+            h('div', { style: { marginTop: '16px' } },
+              h('button', {
+                onClick: () => {
+                  const patch = { ...cfg };
+                  if (cfg.memoryRag._token && cfg.memoryRag._token.trim()) {
+                    patch.memoryRag = { ...cfg.memoryRag, token: cfg.memoryRag._token };
+                  } else {
+                    patch.memoryRag = { ...cfg.memoryRag };
+                    delete patch.memoryRag.token;
+                  }
+                  delete patch.memoryRag._token;
+                  delete patch.memoryRag.tokenHint; delete patch.memoryRag.hasToken;
+                  saveCfg(patch);
+                },
+                disabled: cfgSaving,
+                style: { padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#4f8cff', color: '#fff', fontSize: '14px', cursor: cfgSaving ? 'wait' : 'pointer' },
+              }, cfgSaving ? '保存中…' : '保存设置'),
+            ),
+          ) : h('div', { style: { color: '#888' } }, '加载配置…'),
+        ) : null,
+
+        // 记忆库（people 列表）
+        tab === 'memory' ? h('div', { style: cardStyle },
+          h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '记忆库'),
+          row('记忆条数', String(health?.memoryCount ?? '—')),
+          row('服务', health?.ragOk ? '✅ memory-rag 连接正常' : (health?.ragChecked ? '⚠️ memory-rag 不可达' : '…')),
+          memErr ? h('p', { style: { color: '#c00', fontSize: '13px' } }, '加载失败：' + memErr) : null,
+          mem ? h('div', { style: { marginTop: '12px' } },
+            h('h5', { style: { margin: '0 0 8px', fontSize: '13px', color: '#666' } }, '人物（' + mem.people.length + '）'),
+            mem.people.length ? mem.people.map((p) =>
+              h('div', { key: p.userId, style: { padding: '10px 0', borderBottom: '1px solid #f0f0f0', fontSize: '13px' } },
+                h('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' } },
+                  h('span', { style: { fontWeight: 500 } }, p.name || p.userId),
+                  h('span', { style: { color: '#999' } }, p.items + ' 条 · ' + p.messages + ' 条消息'),
+                ),
+                h('div', { style: { color: '#aaa', fontSize: '12px', marginTop: '2px' } }, '最后：' + String(p.lastSeenAt || '').slice(0, 16).replace('T', ' ')),
+              ),
+            ) : h('p', { style: { color: '#888', fontSize: '13px' } }, '暂无人物记录。'),
+            h('p', { style: { fontSize: '12px', color: '#999', marginTop: '10px' } },
+              '记忆条目完整列表接入中（当前显示人物概览）。'),
+          ) : h('p', { style: { color: '#888', fontSize: '13px' } }, '加载中…'),
+        ) : null,
+
+        // 人格（状态 + 核心文本）
+        tab === 'persona' ? h('div', { style: cardStyle },
+          h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '人格'),
+          health?.persona ? h('div', {},
+            row('已初始化', health.persona.initialized ? '✅ 是' : '❌ 否'),
+            row('注入开关', health.persona.inject ? '✅ 开' : '⏸ 关'),
+            row('人格核心长度', String(health.persona.coreLen ?? '—') + ' 字符'),
+            mem?.personaText ? h('div', { style: { marginTop: '12px' } },
+              h('h5', { style: { margin: '0 0 6px', fontSize: '13px', color: '#666' } }, '人格核心内容'),
+              h('pre', { style: { background: '#f8f9fa', borderRadius: '8px', padding: '12px', fontSize: '12px', lineHeight: '1.7', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '300px', overflow: 'auto', margin: '0' } }, mem.personaText),
+            ) : null,
+          ) : h('p', { style: { fontSize: '13px', color: '#888' } }, '人格状态加载中…'),
+        ) : null,
+      );
+    }
+
+    return {
+      inject: ['slots'],
+      apply(ctx) {
+        const slots = (typeof ctx.get === 'function' ? ctx.get('slots') : undefined) || ctx.slots;
+        if (!slots) return;
+        const PANEL_ID = 'web-memory';
+
+        // DSH slots 系统要求先 inject 声明注册意图，再 register 实际内容
+        // （参照 dshmarket / dsh-fish-memory 模式）。inject 的 callback 是懒执行的。
+
+        // 1. 注册侧边栏导航项（像插件市场：sidebar.panellist）
+        slots.inject('sidebar.panellist', () => {
+          slots.register(
+            { name: 'sidebar.panellist', id: PANEL_ID, order: 3, label: () => '记忆与人格' },
+            (owner = {}) => h(Icon, { size: owner.size ?? 16 }),
+          );
+        });
+        // 2. 注册主内容面板（点击后显示；main 是 keyed slot）
+        slots.inject('main', () => {
+          slots.register(
+            { name: 'main', key: PANEL_ID },
+            () => h(Panel),
+          );
+        });
+        // 3. 也注册到设置（可选，设置里也能看到）
+        slots.inject('settings.section', () => {
+          slots.register(
+            { name: 'settings.section', id: PANEL_ID, order: 55, label: '记忆与人格' },
+            () => h(Panel),
+          );
+        });
+      },
+    };
+  },
+});
