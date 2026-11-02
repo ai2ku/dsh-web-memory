@@ -1,5 +1,7 @@
 node_modules/
-state/
-roles/
 *.log
 config.json
+
+# 运行时状态（数据全走容器，本地只留少量状态；example 模板例外）
+state/*
+!state/*.example.json
