@@ -26,6 +26,8 @@ window.__ModuleLoader__.load({
       const [cfgErr, setCfgErr] = React.useState('');
       const [cfgSaving, setCfgSaving] = React.useState(false);
       const [cfgSaved, setCfgSaved] = React.useState('');
+      const [rebuildJob, setRebuildJob] = React.useState(null); // 重建任务状态（进行中/进度）
+      const [rebuildErr, setRebuildErr] = React.useState('');
 
       React.useEffect(() => {
         let alive = true;
@@ -45,6 +47,25 @@ window.__ModuleLoader__.load({
         return () => { alive = false; };
       }, []);
 
+      // 重建进行中：每 3 秒查一次进度
+      React.useEffect(() => {
+        if (!rebuildJob || rebuildJob.status === 'finished' || rebuildJob.status === 'error') return;
+        const timer = setInterval(() => {
+          fetch(apiUrl('rebuild'), { headers: { accept: 'application/json' } })
+            .then((r) => r.json())
+            .then((d) => {
+              if (!d.ok) { setRebuildJob((j) => j ? { ...j, status: 'error', error: String(d.error || '查询失败') } : j); return; }
+              const j = d.job;
+              if (!j) { setRebuildJob((old) => ({ ...old, status: 'finished', chunks: old?.chunks })); return; }
+              if (j.finished_at) setRebuildJob({ ...j, status: 'finished' });
+              else if (j.error) setRebuildJob({ ...j, status: 'error', error: j.error });
+              else setRebuildJob(j);
+            })
+            .catch((e) => { setRebuildJob((j) => j ? { ...j, status: 'error', error: String(e?.message || e) } : j); });
+        }, 3000);
+        return () => clearInterval(timer);
+      }, [rebuildJob]);
+
       const saveCfg = (patch) => {
         setCfgSaving(true); setCfgSaved('');
         fetch(apiUrl('config'), {
@@ -58,6 +79,18 @@ window.__ModuleLoader__.load({
             else setCfgErr(String(d.error || '保存失败'));
           })
           .catch((e) => { setCfgSaving(false); setCfgErr(String(e?.message || e)); });
+      };
+
+      // 触发全量重建索引（容器后台任务），轮询进度
+      const startRebuild = () => {
+        setRebuildErr(''); setRebuildJob({ status: 'starting' });
+        fetch(apiUrl('rebuild'), { method: 'POST', headers: { accept: 'application/json' } })
+          .then((r) => r.json())
+          .then((d) => {
+            if (!d.ok) { setRebuildErr(String(d.error || '重建失败')); setRebuildJob(null); return; }
+            setRebuildJob(d.job || { status: 'running' });
+          })
+          .catch((e) => { setRebuildErr(String(e?.message || e)); setRebuildJob(null); });
       };
 
       const [mem, setMem] = React.useState(null);
@@ -124,6 +157,21 @@ window.__ModuleLoader__.load({
             // ── memory-rag ──
             h('div', { style: cardStyle },
               h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '记忆服务（memory-rag）'),
+              h('div', { style: { marginBottom: '10px' } },
+                h('button', {
+                  onClick: startRebuild,
+                  disabled: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error',
+                  style: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #4f8cff', background: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#eee' : '#4f8cff', color: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#999' : '#fff', cursor: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? 'not-allowed' : 'pointer', fontSize: '13px' },
+                }, rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '重建中…' : '重建索引'),
+                rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error'
+                  ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#4f8cff' } }, `已处理 ${rebuildJob.chunks ?? 0} 块` + (rebuildJob.error ? `（${rebuildJob.error}）` : '…'))
+                  : rebuildJob && rebuildJob.status === 'finished'
+                    ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#4caf50' } }, '重建完成' + (rebuildJob.chunks != null ? `（${rebuildJob.chunks} 块）` : ''))
+                    : rebuildJob && rebuildJob.status === 'error'
+                      ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#e53935' } }, `重建失败：${rebuildJob.error}`)
+                      : null,
+                rebuildErr ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#e53935' } }, rebuildErr) : null,
+              ),
               h('label', { style: fieldLabel }, h('input', { type: 'checkbox', checked: !!cfg.memoryRag.enabled, onChange: (e) => setCfg({ ...cfg, memoryRag: { ...cfg.memoryRag, enabled: e.target.checked } }) }), ' 启用'),
               h('div', { style: fieldLabel },
                 h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '服务地址'),
