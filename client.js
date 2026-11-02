@@ -162,7 +162,7 @@ window.__ModuleLoader__.load({
                   onClick: startRebuild,
                   disabled: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error',
                   style: { padding: '6px 14px', borderRadius: '6px', border: '1px solid #4f8cff', background: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#eee' : '#4f8cff', color: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '#999' : '#fff', cursor: rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? 'not-allowed' : 'pointer', fontSize: '13px' },
-                }, rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '重建中…' : '重建索引'),
+                }, rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error' ? '全量重建中…' : '全量重建'),
                 rebuildJob && rebuildJob.status !== 'finished' && rebuildJob.status !== 'error'
                   ? h('span', { style: { marginLeft: '10px', fontSize: '12px', color: '#4f8cff' } }, `已处理 ${rebuildJob.chunks ?? 0} 块` + (rebuildJob.error ? `（${rebuildJob.error}）` : '…'))
                   : rebuildJob && rebuildJob.status === 'finished'
