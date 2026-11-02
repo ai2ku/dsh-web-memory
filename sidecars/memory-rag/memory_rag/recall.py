@@ -171,7 +171,7 @@ def associate(svc, key: str, text: str = "", t: int | None = None, people: Seque
     text = str(text or "")[:500]
 
     seeds = set(l2.entities_in_text(key, text, min_len=2))
-    seeds |= {f"qq:{p}" for p in people or () if str(p).strip()}
+    seeds |= {f"user:{p}" for p in people or () if str(p).strip()}
     covering = l2.summary_covering(key, int(t)) if t is not None else None
     if covering:
         seeds |= {e for ents in l2.entities_of(key, [covering["summary_id"]]).values() for e in ents}
