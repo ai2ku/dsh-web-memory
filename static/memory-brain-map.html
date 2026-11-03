@@ -402,14 +402,12 @@ let REAL_DATA = null;
 async function loadRealData(){
   try {
     const api = new URL('graph', window.location.href).href;
-    // 调试：显示实际请求地址（星图加载后可见，确认子路径前缀）
+    const ac = new AbortController();
+    const timer = setTimeout(() => ac.abort(), 6000);
+    let res;
     try {
-      const dbg = document.createElement('div');
-      dbg.style.cssText = 'position:fixed;bottom:6px;left:6px;z-index:99;font:10px monospace;color:#8f99ca;background:rgba(9,14,38,.8);padding:3px 6px;border-radius:4px;';
-      dbg.textContent = 'fetch: ' + api;
-      document.body.appendChild(dbg);
-    } catch {}
-    const res = await fetch(api, { headers: { accept: 'application/json' } });
+      res = await fetch(api, { headers: { accept: 'application/json' }, signal: ac.signal });
+    } finally { clearTimeout(timer); }
     if(!res.ok) return false;
     const d = await res.json();
     if(!d || !d.ok || !Array.isArray(d.summaries) || !d.summaries.length) return false;
@@ -419,28 +417,37 @@ async function loadRealData(){
       const text = (s.title ? s.title + '：' : '') + String(s.summary || '').trim();
       if(!text) continue;
       let daysAgo = 180;
-      if(s.tStart){ const diff = (nowMs - Number(s.tStart)) / 86400000; if(Number.isFinite(diff)) daysAgo = Math.max(0, Math.min(240, Math.round(diff))); }
+      const tStart = Number(s.t_start ?? s.tStart ?? 0);
+      if(tStart){ const diff = (nowMs - tStart) / 86400000; if(Number.isFinite(diff)) daysAgo = Math.max(0, Math.min(240, Math.round(diff))); }
       addMem({
         kind: (String(s.title || '').includes('事实') || String(s.summary || '').includes('喜欢') || String(s.summary || '').includes('讨厌') || String(s.summary || '').includes('会') || String(s.summary || '').includes('是')) ? 'fact' : 'episode',
         text: text.slice(0, 200),
         i0: Math.max(0.2, Math.min(0.9, Number(s.importance ?? 0.5) || 0.5)),
         daysAgo,
         valence: Math.max(-1, Math.min(1, Number(s.valence ?? 0) || 0)),
-        session: null,
+        session: 'chat:root',
         vis: 'private',
         topic: null,
         frequent: false,
         source: '真实记忆 · ' + (s.day || ''),
       });
     }
+    // 真实数据：会话下拉换成当前会话（chat:root），检索按它分组
+    try {
+      SESS.splice(0, SESS.length, {id:'chat:root', name:'当前会话', type:'private', members:['爸爸']});
+      SESS_W.length = 0; SESS_W.push(1);
+      SESS_BY['chat:root'] = SESS[0];
+    } catch {}
     return MEMS.length > 0;
   } catch { return false; }
 }
 
 // 真实数据优先：fetch 到就用真实摘要，没 fetch 到才走下面的示例生成
-if(!await loadRealData()){
-// 先放几条演示要用到的记忆，保证它们存在
+let __realOk = false;
+try { __realOk = await loadRealData(); } catch(e) { __realOk = false; }
 const CONFLICTS = [];
+if(!__realOk){
+// 先放几条演示要用到的记忆，保证它们存在
 {
   const a = addMem({kind:'fact',text:'小满不吃香菜',i0:0.7,daysAgo:12,valence:0,session:null,vis:'private',topic:'火锅',frequent:false,source:'每日抽取',rel:['小满','香菜','不吃']});
   const b1 = addMem({kind:'fact',text:'小满喜欢吃辣',i0:0.62,daysAgo:40,valence:0.2,session:null,vis:'private',topic:'火锅',frequent:true,source:'每日抽取',rel:['小满','辣','喜欢']});
