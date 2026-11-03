@@ -508,8 +508,8 @@ export function createPersona({
       writeLive();
       return maskedConfig();
     },
-    async proposeFactory() {
-      const r = String(roleName() || 'default');
+    async proposeFactory(roleArg) {
+      const r = String(roleArg || roleName() || 'default');
       const card = String(roleCard(r) || '');
       if (!card) throw new Error(`读不到角色卡：${r}`);
       // PERSONA_PATCH（v2 §5 / §7）：v2 一次要拿 11 个数、11 段表现、好恶和信念，输出约为 v1 的 3 倍，
@@ -517,7 +517,17 @@ export function createPersona({
       const { json } = await client.chatJson(factoryMessages(card), { maxTokens: 3000, timeoutMs: 60000 });
       return parseFactory(json);
     },
-    confirmFactory({ traits, character, manifests, prefs, beliefs }) {
+    confirmFactory({ traits, character, manifests, prefs, beliefs }, roleArg) {
+      // PERSONA_PATCH（自定义角色提炼）：传了 roleArg 就先切到该角色再确认（用户明确选了要提炼的角色）
+      const r = String(roleArg || '');
+      if (r && r !== role) {
+        role = r;
+        S = store.load(r);
+        S.core = upgradeCore(S.core);
+        S.emotion ??= newEmotion(now());
+        S.meta ??= {};
+        lastLive = '';
+      }
       const st = ensure();
       const f = parseFactory({ traits, character, manifests, prefs, beliefs });
       const fresh = confirmFactory(f, now());
