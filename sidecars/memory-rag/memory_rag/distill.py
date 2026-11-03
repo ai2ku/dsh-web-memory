@@ -56,13 +56,13 @@ SYSTEM_PROMPT = """你是聊天记录的提炼器。你会收到一段聊天记�
     - 寒暄和一次性的小事（吃了没、几点睡、发了个表情）不要。
     - due：只有 pending 且聊天里说了时间才填，其它一律 null。
 
-假设【在场的人】里有 平安（uid_123）。
-输出结构示例（值换成这段聊天的真实内容）：
+假设【在场的人】里有 平安（root）。
+输出结构示例（值换成这段聊天的真实内容，who 照【在场的人】里的 userId 填，不要照抄示例的 root）：
 {"title": "周末吃火锅", "summary": "平安说周末想去吃那家重庆火锅，排队也没关系。",
  "importance": 0.6, "valence": 0.3,
  "entities": [{"name": "平安", "type": "person"}, {"name": "重庆火锅", "type": "thing"}],
  "relations": [{"src": "平安", "dst": "重庆火锅", "relation": "想吃"}],
- "notes": [{"who": "uid_123", "cat": "pending", "text": "平安说周六中午一起去吃那家重庆火锅", "due": "2026-11-01"}]}
+ "notes": [{"who": "root", "cat": "pending", "text": "平安说周六中午一起去吃那家重庆火锅", "due": "2026-11-01"}]}
 """
 
 
@@ -123,8 +123,9 @@ NOTE_CATS = ("trait", "fact", "event", "pending")
 NOTE_MAX = 3
 NOTE_TEXT_MIN, NOTE_TEXT_MAX = 6, 80
 DUE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-# 非用户标识（userId 已通用化，不再是 QQ）：AI 自己、跨设备占位等，不能当「在场的人」记候选。
-NON_USER_IDS = frozenset({"web", "我", "root", "self", "admin", "bot", "system", "undefined", "null"})
+# 非用户标识（userId 已通用化，不再是 QQ）：AI 自己等，不能当「在场的人」记候选。
+# 注意：'root' 是单用户默认 userId（config crossDevice.userId 默认），是用户，不能挡！
+NON_USER_IDS = frozenset({"web", "我", "self", "admin", "bot", "system", "undefined", "null"})
 
 
 def _valid_due(due: str) -> bool:
@@ -138,13 +139,12 @@ def _valid_due(due: str) -> bool:
     return True
 
 
-def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX, _debug: list | None = None) -> tuple[list[dict], int]:
+def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX) -> tuple[list[dict], int]:
     """SUGGEST_PATCH：把模型给的 `notes` 校验成能写库的候选，返回 (合格列表, 丢弃数)。
 
     纯函数、不抛异常：`notes` 再坏也不能让这次提炼失败——摘要才是主要产物（规格 §3.2）。
     `who` 必须落在本块发言人里；`speakers` 由切块器从 `dir=in` 的消息里取，
     她自己发的（`dir=out`）根本不在里面，所以「必须是发言人」同时挡住了「记成她自己」。
-    `_debug`：传入列表时，每条丢弃记录原因（diagnose 用，不影响正常流程）。
     """
     if not isinstance(raw, list):
         return [], 0  # 字符串 / dict / 缺失都当作「没有候选」，不算丢了一条
@@ -158,7 +158,6 @@ def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX, _debug: list | N
     seen_text: set[str] = set()
     for item in raw:
         if not isinstance(item, dict):
-            if _debug is not None: _debug.append({"drop": "not_dict", "item": str(item)[:120]})
             dropped += 1
             continue
         who = str(item.get("who") or "").strip()
@@ -167,21 +166,17 @@ def validate_notes(raw, chunk: dict, max_notes: int = NOTE_MAX, _debug: list | N
         # userId 已通用化（不再是 QQ）：who 非空、不是非用户保留字即可；
         # speakers 非空时仍强制 who 必须在场（防模型记错人，规格 §3.2）。
         if not who or who in NON_USER_IDS or (speakers and who not in speakers):
-            if _debug is not None: _debug.append({"drop": "who", "who": who, "cat": cat, "text": text[:80], "speakers": list(speakers)[:10]})
             dropped += 1
             continue
         if cat not in NOTE_CATS:
-            if _debug is not None: _debug.append({"drop": "cat", "who": who, "cat": cat, "text": text[:80]})
             dropped += 1
             continue
         if not (NOTE_TEXT_MIN <= len(text) <= NOTE_TEXT_MAX) or "\n" in text or "\r" in text:
-            if _debug is not None: _debug.append({"drop": "text_len", "who": who, "cat": cat, "text": text[:80], "len": len(text)})
             dropped += 1
             continue
         if text in seen_text:  # 同一块里重复的只留一条（不算错，也不计数）
             continue
         if len(out) >= max_notes:
-            if _debug is not None: _debug.append({"drop": "max", "who": who, "cat": cat, "text": text[:80]})
             dropped += 1
             continue
         due = None
@@ -455,14 +450,7 @@ class Distiller:
                 self.last_error = "invalid fields"
                 continue
             # SUGGEST_PATCH：候选只做校验、绝不参与「这次提炼成不成功」的判断（规格 §3.2）
-            _dbg: list = []
-            notes, notes_dropped = validate_notes(parsed.get("notes"), chunk, _debug=_dbg)
-            if _dbg:
-                # 诊断：模型抽到但被校验丢的候选（who/cat/text 原因），容器日志里看
-                import sys as _sys
-                print(f"[distill] notes_dropped={notes_dropped} 明细：", file=_sys.stderr)
-                for d in _dbg[:10]:
-                    print(f"  [distill] {d}", file=_sys.stderr)
+            notes, notes_dropped = validate_notes(parsed.get("notes"), chunk)
             counts["notes_dropped"] += notes_dropped
             result = self._resolve(fields, chunk)
             result["notes"] = notes
