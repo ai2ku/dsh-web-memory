@@ -171,6 +171,15 @@ window.__ModuleLoader__.load({
           cfgErr ? h('div', { style: { color: '#c00', marginBottom: '12px' } }, '配置加载/保存失败：' + cfgErr) : null,
           cfgSaved ? h('div', { style: { color: '#2a7d2a', marginBottom: '12px', fontSize: '13px' } }, cfgSaved) : null,
           cfg ? h('div', {},
+            // ── 主人称呼 ──
+            h('div', { style: cardStyle },
+              h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '主人称呼'),
+              h('div', { style: fieldLabel },
+                h('span', { style: { display: 'block', marginBottom: '4px', color: '#666' } }, '主人名称（存档/账本用，如「爸爸」）'),
+                h('input', { value: cfg.ownerName || '', onChange: (e) => setCfg({ ...cfg, ownerName: e.target.value }), style: inputStyle, placeholder: '用户' }),
+                h('span', { style: { fontSize: '11px', color: '#999', display: 'block', marginTop: '3px' } }, '保存后需重启 DSH 生效'),
+              ),
+            ),
             // ── memory-rag ──
             h('div', { style: cardStyle },
               h('h4', { style: { margin: '0 0 12px', fontSize: '15px' } }, '记忆服务（memory-rag）'),
