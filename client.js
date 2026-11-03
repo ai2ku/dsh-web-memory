@@ -216,7 +216,8 @@ window.__ModuleLoader__.load({
             row('设备标识', h('code', { style: { fontSize: '12px' } }, String(health.device || '—'))),
             row('记忆 key', h('code', { style: { fontSize: '12px' } }, String(health.chatKey || '—'))),
             row('人格 key', h('code', { style: { fontSize: '12px' } }, String(health.personaKey || '—'))),
-            row('记忆条数', String(health.memoryCount ?? '—')),
+            row('记忆摘要', String(health.rag?.distill?.summaries ?? '—')),
+            row('存档消息', String(health.memoryCount ?? '—')),
             row('记忆服务', health.ragOk ? '✅ memory-rag 连接正常' : (health.ragChecked ? '⚠️ memory-rag 不可达' : '…')),
           ) : (err ? null : h('div', { style: { color: 'var(--dsw-alias-label-tertiary, #888)' } }, '加载中…')),
 
