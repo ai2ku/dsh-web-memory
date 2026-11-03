@@ -1,7 +1,8 @@
 {
-  "projectRoot": "/vol1/@apphome/fn-deepseek-harness/plugins/dsh-web-memory",
-  "stateDir": "/vol1/@apphome/fn-deepseek-harness/plugins/dsh-web-memory/state",
-  "configFile": "/vol1/@apphome/fn-deepseek-harness/plugins/dsh-web-memory/config.json",
+  "_pathComment": "projectRoot/stateDir/configFile 三项留空即可：插件自动指向自身目录（跨机器兼容）。仅在数据需放别处时才填绝对路径。",
+  "projectRoot": "",
+  "stateDir": "",
+  "configFile": "",
   "crossDevice": {
     "_comment": "跨端共享记忆的用户标识（单用户场景默认 root）。chat:{userId} 是跨端共享对话，persona:{userId} 是人格，device:{deviceId} 是设备能力。deviceId 留空则用本机 hostname。",
     "userId": "root",
