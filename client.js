@@ -557,7 +557,7 @@ window.__ModuleLoader__.load({
         // 星图（记忆脑图，iframe 加载独立 HTML）
         tab === 'map' ? h('div', { style: { width: '100%', borderRadius: 'var(--dsw-radius-xl, 12px)', overflow: 'hidden', border: '1px solid var(--dsw-alias-border-l3, #ddd)' } },
           h('iframe', {
-            src: new URL('dsh-web-memory/map', document.baseURI).href,
+            src: apiUrl('map'),
             style: { width: '100%', height: 'calc(100vh - 160px)', minHeight: '520px', border: 'none', display: 'block', background: '#050918' },
             title: '记忆星图',
           }),
