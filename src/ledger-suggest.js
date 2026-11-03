@@ -70,7 +70,8 @@ function normalizeNote(raw) {
   const id = typeof raw.note_id === 'string' ? raw.note_id : '';
   if (!NOTE_ID_RE.test(id)) return null;
   const who = String(raw.who ?? '').trim();
-  if (!/^\d+$/.test(who)) return null;
+  // WEB_SESSION_PATCH：who 放宽——QQ 号时代要求纯数字，现在跨设备 userId 是 'root'/'user:xxx'，非空即接受
+  if (!who || who === '私聊' || who === '我' || who === 'self') return null;
   if (typeof raw.cat !== 'string' || !CAT_SHORT[raw.cat]) return null;
   const text = typeof raw.text === 'string' ? raw.text.trim() : '';
   if (!text) return null;
