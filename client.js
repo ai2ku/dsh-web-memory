@@ -74,9 +74,17 @@ window.__ModuleLoader__.load({
         })
           .then((r) => r.json())
           .then((d) => {
-            setCfgSaving(false);
-            if (d.ok) { setCfgSaved('已保存'); setCfg((c) => c ? { ...c, ...patch } : c); }
-            else setCfgErr(String(d.error || '保存失败'));
+            if (!d.ok) { setCfgSaving(false); setCfgErr(String(d.error || '保存失败')); return; }
+            // 保存成功后重新拉取服务端配置：token 只返回脱敏 hint、不回传真值，
+            // 本地硬合并会让 token 输入框一直停在旧值/空。以服务端返回为准刷新整表。
+            return fetch(apiUrl('config'), { headers: { accept: 'application/json' } })
+              .then((r) => r.json())
+              .then((d2) => {
+                setCfgSaving(false);
+                setCfgSaved('已保存');
+                if (d2 && d2.ok && d2.config) setCfg(d2.config);
+                else setCfg((c) => c ? { ...c, ...patch } : c);
+              });
           })
           .catch((e) => { setCfgSaving(false); setCfgErr(String(e?.message || e)); });
       };
