@@ -429,6 +429,15 @@ class L2:
                  "importance": float(r["importance"]), "created_at": int(r["created_at"]),
                  "source": r["source"]} for r in rows]
 
+    def clear_notes(self, key: str) -> int:
+        """DEBUG_PATCH：清空某会话的候选（ledger_notes），保留摘要。调试清假候选用。"""
+        if not key:
+            return 0
+        with self.lock:
+            cur = self.conn.execute("DELETE FROM ledger_notes WHERE key=?", (key,))
+            self.conn.commit()
+        return int(cur.rowcount)
+
     def queue_notes_backfill(self, hours: int, now_ms: int, dry_run: bool = False) -> int:
         """SUGGEST_PATCH：把「有摘要、t_end 在窗口内、还没有 notes_state」的摘要标成 queued。
 
