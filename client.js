@@ -165,14 +165,15 @@ window.__ModuleLoader__.load({
 
       const [mem, setMem] = React.useState(null);
       const [memErr, setMemErr] = React.useState('');
+      const [memLimit, setMemLimit] = React.useState(30);
       React.useEffect(() => {
         let alive = true;
-        fetch(apiUrl('memory'), { headers: { accept: 'application/json' } })
+        fetch(apiUrl('memory?limit=' + memLimit), { headers: { accept: 'application/json' } })
           .then((r) => r.json())
           .then((d) => { if (alive) { if (d.ok) setMem(d); else setMemErr(String(d.error || '加载失败')); } })
           .catch((e) => { if (alive) setMemErr(String(e?.message || e)); });
         return () => { alive = false; };
-      }, []);
+      }, [memLimit]);
 
       const cardStyle = { background: 'var(--dsw-alias-bg-module, #fff)', borderRadius: 'var(--dsw-radius-xl, 12px)', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,.08)', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' };
       const fieldLabel = { display: 'block', margin: '12px 0', fontSize: '13px', color: 'var(--dsw-alias-label-secondary, #333)' };
@@ -428,8 +429,23 @@ window.__ModuleLoader__.load({
                 h('div', { style: { color: '#aaa', fontSize: '12px', marginTop: '2px' } }, '最后：' + String(p.lastSeenAt || '').slice(0, 16).replace('T', ' ')),
               ),
             ) : h('p', { style: { color: 'var(--dsw-alias-label-tertiary, #888)', fontSize: '13px' } }, '暂无人物记录。'),
-            h('p', { style: { fontSize: '12px', color: 'var(--dsw-alias-label-tertiary, #999)', marginTop: '10px' } },
-              '记忆条目完整列表接入中（当前显示人物概览）。'),
+
+            // 存档消息（记忆条目完整列表）
+            h('h5', { style: { margin: '16px 0 8px', fontSize: '13px', color: 'var(--dsw-alias-label-secondary, #666)' } }, '存档消息（' + (mem.archive?.length ?? 0) + ' 条）'),
+            (mem.archive && mem.archive.length) ? mem.archive.map((a, i) =>
+              h('div', { key: (a.t || '') + '_' + i, style: { padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: '13px' } },
+                h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '2px' } },
+                  h('span', { style: { fontSize: '11px', color: 'var(--dsw-alias-label-tertiary, #999)', flexShrink: 0 } }, String(a.t || '').slice(0, 16).replace('T', ' ')),
+                  h('span', { style: { fontSize: '11px', padding: '1px 6px', borderRadius: '8px', background: a.dir === 'user' ? 'var(--dsw-alias-state-business-tertiary, #eef4ff)' : 'var(--dsw-alias-bg-active, #f0f2f5)', color: 'var(--dsw-alias-label-secondary, #666)' } }, a.dir === 'user' ? '我' : (a.name || 'AI')),
+                ),
+                h('div', { style: { color: 'var(--dsw-alias-label-primary, #333)', lineHeight: '1.6', wordBreak: 'break-word' } }, String(a.text || '').slice(0, 200)),
+              ),
+            ) : h('p', { style: { color: 'var(--dsw-alias-label-tertiary, #888)', fontSize: '13px' } }, '暂无存档消息。'),
+            h('button', {
+              onClick: () => setMemLimit((n) => n + 30),
+              disabled: memLimit >= 500,
+              style: { marginTop: '10px', padding: '6px 14px', borderRadius: '6px', border: '1px solid var(--dsw-alias-border-l3, #ddd)', background: 'var(--dsw-alias-bg-module, #fff)', color: 'var(--dsw-alias-label-secondary, #555)', cursor: 'pointer', fontSize: '13px', alignSelf: 'flex-start' },
+            }, memLimit >= 500 ? '已达上限' : '加载更多'),
           ) : h('p', { style: { color: 'var(--dsw-alias-label-tertiary, #888)', fontSize: '13px' } }, '加载中…'),
         ) : null,
 
