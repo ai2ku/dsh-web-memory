@@ -595,7 +595,19 @@ def main():
     threading.Thread(target=_loop, args=(float(srv.get("index_interval_s", 60)),), daemon=True).start()
     # MEMORY_RAG_HOST 环境变量优先（容器内监听 0.0.0.0，远程连接）
     host = os.environ.get("MEMORY_RAG_HOST") or srv.get("host", "127.0.0.1")
-    uvicorn.run(app, host=str(host), port=int(srv.get("port", 8093)), log_level="warning")
+    # 自定义日志：抑制 uvicorn.error 的 WARNING（如外部探测打到端口导致的
+    # 「Invalid HTTP request received」噪音），只保留 ERROR；access 日志照旧。
+    import logging
+    import copy
+    log_cfg = None
+    try:
+        log_cfg = copy.deepcopy(getattr(uvicorn.config, 'LOGGING_CONFIG', None))
+        if log_cfg:
+            log_cfg["loggers"]["uvicorn.error"]["level"] = "ERROR"
+            log_cfg["loggers"]["uvicorn"]["level"] = "ERROR"
+    except Exception:
+        log_cfg = None
+    uvicorn.run(app, host=str(host), port=int(srv.get("port", 8093)), log_level="warning", log_config=log_cfg)
 
 
 if __name__ == "__main__":
