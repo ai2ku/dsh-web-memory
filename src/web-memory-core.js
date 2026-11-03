@@ -129,6 +129,9 @@ export function deviceKey(configFile) {
   return `device:${deviceId(configFile)}`;
 }
 
+// DECAY_FIX：模块级引用（createWebMemoryCore 里赋值），模块级 ltmDecayState 靠它访问 decay 实例。
+let decayRef = null;
+
 // ── 核心工厂 ─────────────────────────────────────────────────────────────
 
 /**
@@ -187,6 +190,7 @@ export function createWebMemoryCore(opts = {}) {
   } catch (error) {
     log(`⚠️ 遗忘模块未启用：${error?.message ?? error}`);
   }
+  decayRef = decay; // DECAY_FIX：模块级引用，让模块级 ltmDecayState 能访问到
 
   // ── 长期记忆（存档 + 人物账本）──
   // 记忆全存容器：fileClient 惰性绑定 rag（容器存储），ltm 的持久化走容器。
@@ -201,7 +205,7 @@ export function createWebMemoryCore(opts = {}) {
     decayOf: decay
       ? (item, uid) => {
         try {
-          const st = ltmDecayState(item, uid);
+          const st = ltmDecayState(item, uid, crossUserId(configFile));
           return st ? { R: st.R, frozen: st.frozen } : null;
         } catch { return null; }
       }
@@ -378,7 +382,7 @@ function ltmTotals(ltm) {
     for (const p of ltm.listPeople()) {
       const active = (ltm.personView(p.userId)?.items ?? []).filter((x) => !x.archivedAt);
       total += active.length;
-      faded += active.filter((x) => !x.outdatedAt && ltmDecayState(x, p.userId)?.frozen).length;
+      faded += active.filter((x) => !x.outdatedAt && ltmDecayState(x, p.userId, p.userId)?.frozen).length;
       outdated += active.filter((x) => x.outdatedAt).length;
     }
     return { total, faded, outdated };
@@ -386,10 +390,14 @@ function ltmTotals(ltm) {
 }
 
 /** 从 ltmDecayState 读记忆代谢状态（bridge.js 原本的实现，简化版）。 */
-function ltmDecayState(item, uid) {
+function ltmDecayState(item, uid, ownerQQ) {
   try {
-    const m = item?._decay ?? null;
-    return m && typeof m === 'object' ? m : null;
+    // DECAY_FIX：原项目直接调 decay.state() 实时算 R/frozen，不是读 item._decay（那字段从没被赋值，导致遗忘一直不生效）。
+    const d = decayRef;
+    if (!d || !item || item.id == null) return null;
+    const meta = d.ltmMeta(item, { ownerQQ: ownerQQ != null ? ownerQQ : null, userId: String(uid ?? ''), intimacy: undefined });
+    const st = d.state('ltm:' + item.id, meta);
+    return st && typeof st === 'object' ? st : null;
   } catch { return null; }
 }
 
