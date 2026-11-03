@@ -287,7 +287,7 @@ export function createLedgerSuggest({ rag = null, ltm = null, statePath = null, 
       const due = note.due ? `（到期 ${note.due}）` : '';
       lines.push(`- ${day} · ${displayName(note, note.key)}（${note.who}）· ${CAT_SHORT[note.cat]}(${note.cat})：${note.text}${due}`);
     }
-    lines.push('值得长期记住的就用 ltm_remember 记下（可以换成你自己的话；约定记得填 due 和 by）；不值得就不用管。这些只是提醒，不要念出来，也不要为这个去问对方。');
+    lines.push('值得长期记住的就用 mem_remember 记下（可以换成你自己的话；约定记得填 due 和 by）；不值得就不用管。这些只是提醒，不要念出来，也不要为这个去问对方。');
     return lines.join('\n');
   }
 
@@ -396,7 +396,7 @@ export function createLedgerSuggest({ rag = null, ltm = null, statePath = null, 
   }
 
   /**
-   * 她刚用 ltm_remember 记下一条 → 看是不是本进程内给她看过的某条候选（规格 §4.6）。
+   * 她刚用 mem_remember 记下一条 → 看是不是本进程内给她看过的某条候选（规格 §4.6）。
    * 只动状态文件；失败不影响写入，也不改给她的响应。
    */
   function onRemember(key, userId, itemId) {
