@@ -287,10 +287,10 @@ export function createLedgerSuggest({ rag = null, ltm = null, statePath = null, 
       const due = note.due ? `（到期 ${note.due}）` : '';
       lines.push(`- ${day} · ${displayName(note, note.key)}（${note.who}）· ${CAT_SHORT[note.cat]}(${note.cat})：${note.text}${due}〔${note.id}〕`);
     }
-    lines.push('以上每条候选，你必须在这轮内明确表态，二选一，不许跳过：' +
+    lines.push('以上每条候选，你必须明确表态，二选一，不许跳过：' +
       '① 值得记住 → 用 mem_remember 记下（可换成自己的话；约定记得填 due 和 by）；' +
       '② 不值得 → 用 mem_suggest_skip 标记（id 是每条末尾〔〕里的编号）。' +
-      '全部表态后才会出现下一批候选；未表态的不会重复出现，直到你表态。这些只是提醒，不要念出来，也不要为这个去问对方。');
+      '未表态的候选每次唤醒都会继续出现，直到你表态或过期；全部表态后才出现下一批候选。这些只是提醒，不要念出来，也不要为这个去问对方。');
     return lines.join('\n');
   }
 
@@ -340,11 +340,9 @@ export function createLedgerSuggest({ rag = null, ltm = null, statePath = null, 
         if (existing && existing.key !== k) continue; // 会话隔离：别的会话的候选绝不带进来
         const entry = ensureEntry(note, k);
         if (entry.status !== 'open') continue;        // 已采用 / 已作废 / 已判过重的都不再给
-        // PENDING_PATCH：已给过一次（shown>=1）且仍 open（AI 还没表态）→ 这轮不再重复给，
-        // 等 AI 用 mem_remember（→adopted）或 mem_suggest_skip（→dismissed）表态后才推进下一批。
-        if (entry.shown >= 1) continue;
-        // 出现满 maxShows 次、或超过 TTL → 作废（规格 §4.3 第 2 步）。
-        if (entry.shown >= cfg.maxShows || note.createdAt + ttlMs <= t) {
+        // PENDING_PATCH：未表态（open）候选每次唤醒都重复出现，直到 AI 表态
+        // （mem_remember → adopted / mem_suggest_skip → dismissed）或超过 TTL（14 天）过期。
+        if (note.createdAt + ttlMs <= t) {
           entry.status = 'expired';
           entry.statusAt = t;
           dirty = true;
