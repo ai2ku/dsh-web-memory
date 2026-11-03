@@ -302,6 +302,13 @@ def notes(req: NotesReq):
     return {"key": req.key, "items": svc.l2.notes(req.key, since, limit)}
 
 
+@app.post("/notes/clear")
+def notes_clear(req: NotesReq):
+    """DEBUG_PATCH：清空本会话的候选（ledger_notes），保留摘要。调试清假候选用。"""
+    n = svc.l2.clear_notes(req.key)
+    return {"key": req.key, "cleared": n}
+
+
 @app.post("/notes/backfill")
 def notes_backfill(req: NotesBackfillReq):
     """SUGGEST_PATCH：把最近 hours 小时内、还没抽过候选的摘要标成 queued（真的回补在提炼循环里）。"""
