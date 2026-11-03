@@ -95,6 +95,13 @@ class SummariesReq(BaseModel):
     ids: list[str] = Field(default_factory=list)
 
 
+# MEMORY_MAP_PATCH：记忆星图数据（实体/关系/摘要），POST 带 key，返回 l2.list_graph。
+class GraphReq(BaseModel):
+    key: str = ""
+    entity_limit: int = 300
+    summary_limit: int = 300
+
+
 # SUGGEST_PATCH：账本建议的读接口与回补（接口约定 §1）。`hours` 故意用 Any 接，
 # 好把「不是整数 / 超范围」统一回 400，而不是 pydantic 默认的 422。
 class NotesReq(BaseModel):
@@ -287,6 +294,16 @@ def summaries(req: SummariesReq):
     """控制台按编号取摘要文字：不属于该 key 或已删除的 id 不返回（桥接显示「已删除」）。"""
     _recall_ready(req.key)
     return run_summaries(svc, req.key, [str(i) for i in (req.ids or [])][:100])
+
+
+@app.post("/graph")
+def graph(req: GraphReq):
+    """记忆星图：按会话 key 返回实体/关系/摘要（图谱节点与边）。"""
+    _recall_ready(req.key)
+    if svc.l2 is None:
+        raise HTTPException(503, "向量库不可用")
+    g = svc.l2.list_graph(req.key, entity_limit=req.entity_limit, summary_limit=req.summary_limit)
+    return {"key": req.key, "entities": g["entities"], "relations": g["relations"], "summaries": g["summaries"]}
 
 
 @app.post("/notes")

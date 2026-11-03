@@ -563,6 +563,49 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
   }
 
   /**
+   * MEMORY_MAP_PATCH：POST /graph —— 记忆星图数据（实体/关系/摘要）。
+   * 和 summaries 同一套纪律：key 不合法不发请求；失败返回 null；
+   * 返回 { entities, relations, summaries }。
+   */
+  async function graph(params = {}) {
+    if (!enabled()) return null;
+    const key = String(params.key ?? '').trim();
+    if (!KEY_RE.test(key)) {
+      log('[rag] 拒绝查星图：会话 key 不合法');
+      return null;
+    }
+    const entityLimit = clampInt(params.entityLimit, 1, 1000, 300);
+    const summaryLimit = clampInt(params.summaryLimit, 1, 1000, 300);
+    return postJson('/graph', { key, entity_limit: entityLimit, summary_limit: summaryLimit }, SUMMARIES_TIMEOUT_MS, (data) => {
+      if (!Array.isArray(data.entities) || !Array.isArray(data.relations) || !Array.isArray(data.summaries)) return null;
+      return {
+        entities: data.entities.map((e) => ({
+          id: String(e.id ?? ''),
+          type: String(e.type ?? 'thing'),
+          name: String(e.name ?? ''),
+          qq: e.qq == null ? null : String(e.qq),
+          count: Number(e.count ?? 0),
+        })).filter((e) => e.id && e.name),
+        relations: data.relations.map((r) => ({
+          src: String(r.src ?? ''),
+          dst: String(r.dst ?? ''),
+          relation: String(r.relation ?? ''),
+          count: Number(r.count ?? 0),
+        })).filter((r) => r.src && r.dst),
+        summaries: data.summaries.map((s) => ({
+          summaryId: String(s.summary_id ?? ''),
+          day: String(s.day ?? ''),
+          title: String(s.title ?? ''),
+          summary: String(s.summary ?? ''),
+          importance: Number(s.importance ?? 0),
+          valence: Number(s.valence ?? 0),
+          tStart: Number(s.t_start ?? 0),
+        })).filter((s) => s.summaryId),
+      };
+    });
+  }
+
+  /**
    * SUGGEST_PATCH：POST /notes —— 账本建议的候选（契约 §1，按会话 key 与 since_ms 过滤）。
    * 和别的读接口同一套纪律：key 不合法不发请求；失败（网络 / 超时 / 非 2xx / 坏 JSON /
    * key 不一致）一律 null；返回 { items }，字段白名单见 normalizeLedgerNote。
@@ -681,7 +724,7 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
   }
 
   return {
-    search, health, indexRun, rebuild, forget, recall, associate, summaries, notes, distillRetry,
+    search, health, indexRun, rebuild, forget, recall, associate, summaries, graph, notes, distillRetry,
     registerDevice, getDevice, listDevices, indexText,
     fileRead, fileWrite, fileAppend, fileDelete, fileList,
     // APIHUB_PATCH：给桥接算 history-search 的 semantic / 判断总开关用。

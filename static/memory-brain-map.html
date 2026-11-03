@@ -1,0 +1,1215 @@
+<title>鱼的记忆脑图</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+QingKe+HuangYou&display=swap">
+<style>
+/* 布局：整屏是一颗会转的脑图画布；左边是脑区图例，右边是「详情 / 检索演示 / 时间推演」三页面板；窄屏时图例变成横条，面板变成底部抽屉。
+   单一深色视觉（发光神经网络），刻意不做浅色主题。 */
+:root{
+  color-scheme: dark;
+  --void:#050918;
+  --deep:#0d1744;
+  --glass:rgba(9,14,38,.84);
+  --edge:rgba(150,165,255,.17);
+  --ink:#e4e9ff;
+  --dim:#8f99ca;
+  --gold:#ffe57a;
+  --warn:#ffb25c;
+  --bad:#ff5f7e;
+  --f-display:"ZCOOL QingKe HuangYou","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif;
+  --f-body:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+}
+html,body{height:100%}
+body{background:radial-gradient(ellipse 70% 60% at 46% 48%,#14205a 0%,var(--deep) 38%,var(--void) 100%);background-color:var(--void);color:var(--ink);font-family:var(--f-body);overflow:hidden}
+.app{position:relative;height:100%;overflow:hidden;box-sizing:border-box;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+#brain{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#brain.grabbing{cursor:grabbing}
+#brain.pointing{cursor:pointer}
+
+.head{position:absolute;top:18px;left:max(18px,env(safe-area-inset-left,0px));max-width:min(460px,calc(100% - 430px));pointer-events:none;z-index:2}
+h1{font-family:var(--f-display);font-weight:400;font-size:34px;letter-spacing:.05em;margin:0;line-height:1.1;text-shadow:0 0 22px rgba(120,150,255,.5)}
+h1 span{color:var(--gold);margin-left:.25em;text-shadow:0 0 18px rgba(255,229,122,.55)}
+.sub{margin:8px 0 0;color:var(--dim);font-size:13px;line-height:1.65}
+.stats{margin:6px 0 0;font:12px var(--f-mono);color:#aab4e8;font-variant-numeric:tabular-nums}
+
+.legend{position:absolute;left:max(16px,env(safe-area-inset-left,0px));top:158px;bottom:66px;width:190px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;z-index:2;scrollbar-width:none}
+.legend::-webkit-scrollbar{display:none}
+.legend button{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);font:13px var(--f-body);text-align:left;cursor:pointer;flex:none}
+.legend button i{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 10px var(--c);flex:none}
+.legend button:hover{background:rgba(140,160,255,.09)}
+.legend button[aria-pressed="true"]{border-color:color-mix(in srgb,var(--c) 60%,transparent);background:color-mix(in srgb,var(--c) 13%,transparent)}
+.legend small{margin-left:auto;font:11px var(--f-mono);color:var(--dim)}
+
+.panel{position:absolute;top:16px;bottom:16px;right:max(16px,env(safe-area-inset-right,0px));width:372px;display:flex;flex-direction:column;background:var(--glass);border:1px solid var(--edge);border-radius:14px;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);z-index:3;overflow:hidden}
+.tabs{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--edge);flex:none}
+.tabs button{flex:1;padding:8px 6px;border-radius:8px;border:0;background:transparent;color:var(--dim);font:500 13px var(--f-body);cursor:pointer}
+.tabs button:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{background:rgba(255,229,122,.12);color:var(--gold)}
+.pbody{flex:1;overflow-y:auto;padding:16px 18px 22px;min-height:0;scrollbar-width:thin}
+
+.eyebrow{display:flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.08em;color:var(--dim)}
+.eyebrow i{width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c)}
+h2{font-family:var(--f-display);font-weight:400;font-size:25px;letter-spacing:.03em;margin:6px 0 10px;line-height:1.25;text-wrap:balance}
+h3{font-size:12px;letter-spacing:.12em;color:var(--dim);font-weight:500;margin:18px 0 8px}
+.desc{line-height:1.8;color:#cdd4f6;font-size:14px;margin:0 0 12px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}
+.kv div{background:rgba(140,160,255,.06);border:1px solid var(--edge);border-radius:8px;padding:8px 10px;min-width:0}
+.kv dt{font-size:11px;color:var(--dim);letter-spacing:.04em}
+.kv dd{margin:3px 0 0;font:500 13px var(--f-mono);color:var(--ink);overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.src{font:12px var(--f-mono);color:#8290cc;margin:0 0 6px;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--edge);background:rgba(140,160,255,.05);color:var(--ink);font:12px var(--f-body);cursor:pointer;max-width:100%}
+.chip i{width:7px;height:7px;border-radius:50%;background:var(--c);flex:none}
+.chip:hover{border-color:rgba(200,210,255,.4)}
+.tag{display:inline-block;padding:1px 8px;border-radius:999px;border:1px solid var(--edge);font:11px var(--f-mono);color:var(--dim)}
+.quote{border-left:2px solid var(--c);padding:4px 0 4px 12px;margin:4px 0 14px;font-size:15px;line-height:1.75}
+.list{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.list button{width:100%;text-align:left;background:rgba(140,160,255,.05);border:1px solid var(--edge);border-radius:8px;padding:7px 10px;color:var(--ink);font:13px/1.55 var(--f-body);cursor:pointer}
+.list button:hover{border-color:rgba(200,210,255,.4)}
+.list button b{font-weight:500;color:var(--c)}
+.hint{font-size:12px;color:var(--dim);line-height:1.7;margin:14px 0 0}
+.warn{font-size:12px;color:var(--warn);line-height:1.7;margin:8px 0 0}
+
+.wbar{display:flex;height:30px;border-radius:6px;overflow:hidden;margin:4px 0 8px}
+.wbar span{display:flex;align-items:center;justify-content:center;font:500 11px var(--f-mono);color:#0a0f2c;min-width:0;overflow:hidden;white-space:nowrap}
+.wkey{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:12px;color:#cdd4f6;margin:0 0 4px}
+.wkey span{display:flex;align-items:center;gap:6px}
+.wkey i{width:8px;height:8px;border-radius:2px;background:var(--c);flex:none}
+.rules{margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#cdd4f6}
+
+label{display:block;font-size:12px;color:var(--dim);margin:12px 0 6px;letter-spacing:.04em}
+label:first-child{margin-top:0}
+select,input[type="text"]{width:100%;box-sizing:border-box;background:rgba(5,9,26,.75);border:1px solid var(--edge);border-radius:8px;color:var(--ink);font:14px var(--f-body);padding:9px 10px}
+.samples{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.run{width:100%;margin-top:14px;padding:10px;border-radius:9px;border:1px solid rgba(255,229,122,.5);background:linear-gradient(180deg,rgba(255,229,122,.22),rgba(255,229,122,.07));color:var(--gold);font:500 14px var(--f-body);cursor:pointer}
+.run:hover{background:linear-gradient(180deg,rgba(255,229,122,.3),rgba(255,229,122,.1))}
+.run:disabled{opacity:.55;cursor:progress}
+.steps{list-style:none;padding:0;margin:16px 0 6px;display:grid;gap:2px;counter-reset:s}
+.steps li{display:flex;gap:10px;align-items:baseline;font-size:13px;color:var(--dim);padding:3px 0;line-height:1.5}
+.steps li::before{counter-increment:s;content:counter(s);font:11px var(--f-mono);width:19px;height:19px;border-radius:50%;border:1px solid var(--edge);display:inline-grid;place-items:center;flex:none}
+.steps li.on{color:var(--ink)}
+.steps li.on::before{border-color:var(--gold);color:var(--gold);box-shadow:0 0 10px rgba(255,229,122,.55)}
+.steps li.done{color:#c2c9ee}
+.steps li.done::before{background:rgba(255,229,122,.16);color:var(--gold);border-color:rgba(255,229,122,.4)}
+.summary{font-size:12px;color:var(--dim);line-height:1.75;margin:10px 0}
+.summary b{color:var(--ink);font-weight:500;font-family:var(--f-mono)}
+.hit{display:block;width:100%;text-align:left;border:1px solid var(--edge);border-radius:10px;padding:10px 12px;margin:0 0 8px;background:rgba(140,160,255,.045);color:var(--ink);cursor:pointer;font:inherit}
+.hit:hover{border-color:rgba(255,229,122,.45)}
+.hit.below{opacity:.55}
+.hit .meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px}
+.hit .txt{display:block;font-size:14px;line-height:1.65;margin-bottom:8px}
+.hit .warn{display:block}
+.sbar{position:relative;height:10px;border-radius:3px;background:rgba(140,160,255,.09);display:flex}
+.sbar span{height:100%;flex:none}
+.sbar .th{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--bad);border-radius:1px}
+.sline{display:block;font:11px/1.6 var(--f-mono);color:var(--dim);margin-top:6px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+pre.inject{white-space:pre-wrap;font:12px/1.75 var(--f-mono);background:rgba(4,7,22,.85);border:1px solid rgba(255,166,92,.4);border-radius:8px;padding:10px 12px;color:#ffdcbd;margin:6px 0 0;overflow-x:auto}
+
+input[type="range"]{width:100%;accent-color:var(--gold);margin:4px 0}
+.dayrow{display:flex;align-items:center;gap:10px;margin-top:8px}
+.dayrow output{font:500 15px var(--f-mono);color:var(--gold);min-width:6.5em;font-variant-numeric:tabular-nums}
+.dayrow button{margin-left:auto;padding:7px 14px;border-radius:8px;border:1px solid rgba(255,229,122,.5);background:rgba(255,229,122,.1);color:var(--gold);font:500 13px var(--f-body);cursor:pointer}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.tile{border:1px solid var(--edge);border-radius:10px;padding:8px 10px;min-width:0}
+.tile b{display:block;font:500 20px var(--f-mono);font-variant-numeric:tabular-nums}
+.tile span{font-size:11px;color:var(--dim)}
+.chart{width:100%;height:auto;display:block;margin:4px 0 2px}
+
+.viewctl{position:absolute;left:max(16px,env(safe-area-inset-left,0px));bottom:16px;display:flex;gap:6px;z-index:2}
+.viewctl button{padding:6px 12px;border-radius:8px;border:1px solid var(--edge);background:var(--glass);color:var(--ink);font:12px var(--f-body);cursor:pointer}
+.viewctl button[aria-pressed="true"]{color:var(--gold);border-color:rgba(255,229,122,.45)}
+.tip{position:absolute;z-index:4;pointer-events:none;padding:6px 10px;border-radius:8px;background:rgba(7,11,32,.94);border:1px solid var(--edge);font-size:12px;color:var(--ink);max-width:260px;line-height:1.55}
+.tip small{display:block;color:var(--dim);font-size:11px}
+
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+@media (max-width:820px){
+  .head{top:12px;max-width:none;right:max(16px,env(safe-area-inset-right,0px))}
+  h1{font-size:26px}
+  .sub{display:none}
+  .legend{top:70px;bottom:auto;right:max(16px,env(safe-area-inset-right,0px));width:auto;flex-direction:row;overflow-x:auto;overflow-y:hidden;gap:4px;padding-bottom:4px}
+  .legend button{border-color:var(--edge);padding:5px 10px}
+  .legend small{display:none}
+  .panel{top:auto;left:max(16px,env(safe-area-inset-left,0px));right:max(16px,env(safe-area-inset-right,0px));width:auto;height:clamp(220px,40%,420px);bottom:max(12px,env(safe-area-inset-bottom,0px))}
+  .viewctl{bottom:calc(clamp(220px,40%,420px) + 22px)}
+  .viewctl button{padding:5px 10px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+
+<div class="app" id="app">
+  <canvas id="brain" role="img" aria-label="鱼的记忆框架的脑图：十三个脑区、示例记忆节点和它们之间的数据流"></canvas>
+  <div class="tip" id="tip" hidden></div>
+
+  <header class="head">
+    <h1>鱼的记忆<span>脑图</span></h1>
+    <p class="sub">多层记忆架构 + 神经图谱。脑区、参数和数据流按 memory_brain / persona_state 源码画出，库里的记忆是示例数据。</p>
+    <p class="stats" id="stats"></p>
+  </header>
+
+  <nav class="legend" id="legend" aria-label="脑区"></nav>
+
+  <aside class="panel" id="panel" aria-label="详情面板">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-btn-detail" aria-selected="true" data-tab="detail">详情</button>
+      <button role="tab" id="tab-btn-recall" aria-selected="false" data-tab="recall">检索演示</button>
+      <button role="tab" id="tab-btn-time" aria-selected="false" data-tab="time">时间推演</button>
+    </div>
+    <div class="pbody" id="tab-detail" role="tabpanel"></div>
+    <div class="pbody" id="tab-recall" role="tabpanel" hidden>
+      <label for="sess">在哪个会话里</label>
+      <select id="sess"></select>
+      <label for="q">她听到的这句话</label>
+      <input type="text" id="q" value="上次说好的那家火锅什么时候去" autocomplete="off">
+      <div class="samples" id="samples"></div>
+      <button class="run" id="run">开始检索</button>
+      <ol class="steps" id="steps"></ol>
+      <div id="results"><p class="hint">检索会按 engine.py 的 recall() 走一遍：bigram 关键词、全量向量、图谱 1 跳、五路加权、意图重排、去重、门槛。向量相似度是按话题模拟的，其余都按源码公式算。</p></div>
+    </div>
+    <div class="pbody" id="tab-time" role="tabpanel" hidden>
+      <h2>记忆是代谢系统</h2>
+      <p class="desc">拖动时间，看现有记忆按源码规则衰减、归档、删除。归档的记忆被推到库的外圈并变灰，删除的消失。推演不包含新写入的记忆。</p>
+      <label for="day">从示例里的「今天」往后推</label>
+      <input type="range" id="day" min="0" max="240" step="1" value="0">
+      <div class="dayrow"><output id="dayout" for="day">第 0 天</output><button id="play">播放</button></div>
+      <div class="tiles">
+        <div class="tile"><b id="t-active">0</b><span>活跃，参与检索</span></div>
+        <div class="tile"><b id="t-arch">0</b><span>归档，不再检索</span></div>
+        <div class="tile"><b id="t-purge">0</b><span>已彻底删除</span></div>
+      </div>
+      <svg class="chart" id="chart" viewBox="0 0 330 150" role="img" aria-label="记忆数量随时间变化"></svg>
+      <p class="warn" id="fact-note"></p>
+      <h3>每天的维护顺序</h3>
+      <ol class="rules">
+        <li>衰减：importance × 0.99，常用的减半</li>
+        <li>归档：低于 0.3、超过 30 天、30 天内没被想起</li>
+        <li>清理：归档满 180 天彻底删除</li>
+        <li>孤儿实体、过期待办、冲突、分类上限</li>
+        <li>媒体导入、道理、睡觉整理（合并 0.92）</li>
+        <li>人物画像、每日反思、事件→事实</li>
+      </ol>
+    </div>
+  </aside>
+
+  <div class="viewctl">
+    <button id="rot" aria-pressed="true">自动旋转</button>
+    <button id="reset">重置视角</button>
+  </div>
+</div>
+
+<script>
+(async () => {
+'use strict';
+const TAU = Math.PI * 2;
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------ 随机数（固定种子，布局每次一样） */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd = mulberry32(20261028);
+const rr = (a,b) => a + (b-a)*rnd();
+const pick = a => a[Math.floor(rnd()*a.length)];
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function hashStr(s){let h=2166136261;for(const ch of s){h^=ch.codePointAt(0);h=Math.imul(h,16777619)}return h>>>0}
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ------------------------------------------------------------ 脑区（内容取自插件源码与落地手册） */
+const REGIONS = [
+{id:'text',name:'语言输入',color:'#b3a6ff',c:[-230,-250,90],r:[80,48,60],fill:34,
+ desc:'她读到的文字：聊天消息、文章链接、看书段落、Life Loop 写下的笔记。',
+ fns:[
+  {name:'聊天消息',desc:'私聊和群聊里的每条文字消息。先进工作记忆的消息缓冲，同时写进原始消息表。',src:'memory_brain/main.py · _buffer_message'},
+  {name:'文章 / 链接',desc:'链接解析后的正文作为媒体记忆导入长期记忆库，visibility 记为 public。',src:'memory_brain/main.py · _import_media'},
+  {name:'看书',desc:'Life Loop 的 book 动作：读一段书，写感想，存阅读进度。',src:'life_loop（独立脚本）'},
+  {name:'原始消息表',desc:'raw_messages 只留最近 2000 条，每条截到 400 字，只给语感统计用，不参与检索。',params:[['保留','2000 条'],['单条上限','400 字']],src:'memory_brain/store.py · add_raw'}]},
+{id:'vision',name:'视觉皮层',color:'#4cc9ff',c:[-340,-120,-70],r:[85,72,70],fill:48,
+ desc:'看见的东西都先变成一句话：图片描述、视频抽帧、刷抖音录屏、手机读屏。',
+ fns:[
+  {name:'图片一句话描述',desc:'对方发图时让视觉模型写一句话存成记忆。群里的图默认不记。',params:[['每天上限','10 张'],['群图','默认不记']],src:'memory_brain/multimodal.py'},
+  {name:'视频抽帧',desc:'收到视频时抽 4 帧做画面描述，音轨交给听觉皮层转写，合成一条记忆。',params:[['抽帧','4 帧'],['每天上限','5 段']],src:'memory_brain/media.py'},
+  {name:'刷抖音',desc:'Life Loop 的 watch 动作：录 15 秒、抽帧、转写，写成笔记。',params:[['录制','15 秒'],['花费','≈ 2.9k token / 条']],src:'life_loop（独立脚本）'},
+  {name:'手机读屏',desc:'Life Loop 的 phone 动作：打开手机刷一会儿，读屏幕上的内容。',src:'life_loop（独立脚本）'}]},
+{id:'audio',name:'听觉皮层',color:'#ff6fae',c:[-445,40,60],r:[55,68,55],fill:34,
+ desc:'听到的声音在本地转成文字，不花 token。',
+ fns:[
+  {name:'语音转写',desc:'收到语音时用本地 faster-whisper 转文字，存进记忆，并让这一轮能直接接话。',params:[['模型','whisper small'],['大小','≈ 460 MB'],['花费','0 token']],src:'memory_brain/voice.py'},
+  {name:'视频音轨',desc:'视频的声音同样走本地转写，和抽帧描述合在一起。',src:'memory_brain/media.py'},
+  {name:'语音注入',desc:'把转写结果作为【对方这条语音说的是】注入本轮提示词，并从请求里剥掉原始音频。',src:'memory_brain/main.py · _maybe_voice'}]},
+{id:'working',name:'工作记忆',color:'#ff9bd0',c:[-300,170,130],r:[70,55,55],fill:30,
+ desc:'短期、按会话隔离的记忆：攒消息、记待办，几天就过期。',
+ fns:[
+  {name:'消息缓冲',desc:'每个会话攒满 12 条消息，整批交给海马体写成一段记忆。太小会碎，太大会糊。',params:[['batch_size','12 条']],src:'memory_brain/main.py · _buffer_message'},
+  {name:'待办捕获',desc:'正则抓「记得 / 别忘了 / 待会 / 明天 / 我要 / 说好」后面的话，存成待办或约定。',params:[['每会话','最多 5 条'],['过期','3 天']],src:'memory_brain/working.py'},
+  {name:'完成关闭',desc:'出现「好了 / 搞定了 / 发过去了」时，关掉相似的待办（bigram 相似 ≥ 0.5）。',src:'memory_brain/store.py · close_working'},
+  {name:'临时笔记',desc:'Life Loop 里 keep=temp 的笔记只进 1 天工作记忆，不进长期库。',params:[['寿命','1 天']],src:'life_loop → notes.jsonl'}]},
+{id:'hippo',name:'海马体·写入',color:'#33e3b5',c:[-95,-50,70],r:[72,55,60],fill:30,
+ desc:'把原料提炼成记忆。只存以后用得上的，一句能说完就不写一段。',
+ fns:[
+  {name:'批量摘要',desc:'一批 12 条消息让模型整理成一句话摘要，同时给出类型、重要性、情绪、实体和关系。模型出错时按规则拼接兜底。',params:[['摘要','≤ 100 字'],['每批','1 次模型调用']],src:'memory_brain/extractor.py'},
+  {name:'重要性打分',desc:'寒暄 0.2、日常 0.4、约定或偏好 0.6、重要事件或情绪波动 0.8。规则兜底时遇到「答应 / 约定 / 生日 / 吵架」再加 0.2。',params:[['寒暄','0.2'],['日常','0.4'],['约定偏好','0.6'],['重要事件','0.8']],src:'memory_brain/extractor.py'},
+  {name:'事件→事实',desc:'每天从当天的事件里抽长期有效的事实或偏好，存成 fact。来源全是群聊才标 group，否则标 private。',params:[['每天上限','5 条'],['至少','3 条事件']],src:'memory_brain/abstract.py'},
+  {name:'道理提炼',desc:'每天从笔记和看过的内容里抽 2–3 条能照着做的准则，存成 lesson。',params:[['每天','2–3 条']],src:'memory_brain/lessons.py'},
+  {name:'每日反思',desc:'每天写一篇「今天印象最深的三件事」，存成 reflection，只在私聊可见。',src:'memory_brain/reflection.py'},
+  {name:'程序记忆',desc:'对方说「好了 / 成功了 / 搞定了」之后，把刚才的做法整理成可复用的步骤，存成 skill。',src:'memory_brain/procedural.py'},
+  {name:'人物画像',desc:'每天给最活跃的人或话题写一段印象，写在实体上，聊天时作为【对他们的印象】注入。',params:[['每天上限','5 个'],['更新间隔','7 天'],['关联记忆','≥ 2 条']],src:'memory_brain/profile.py'}]},
+{id:'graph',name:'神经图谱',color:'#5af2ff',c:[-150,-130,-215],r:[118,100,95],
+ desc:'记忆里出现的人、地方、东西、话题是节点，关系是边。每条记忆通过 memory_entities 挂在实体上，检索时顺着实体找邻居。',
+ fns:[
+  {name:'1 跳扩散',desc:'检索时拿关键词前 5 名和语义前 5 名当种子，找和它们共享实体的其它记忆（最多 30 条）补进候选。',params:[['种子','关键词 5 + 语义 5'],['扩散','1 跳 · 最多 30 条']],src:'memory_brain/store.py · neighbor_memories'},
+  {name:'别名归一',desc:'睡觉整理时，去掉 emoji 和标点后同名的实体合并；配置里的「我=助手」之类按别名表合并。',src:'memory_brain/consolidate.py'},
+  {name:'共现边',desc:'两个实体出现在同一条记忆里就连一条线，管理面板的图谱用它画虚线。',src:'memory_brain/store.py · cooccurrence_edges'}]},
+{id:'ltm',name:'长期记忆库',color:'#ffb35c',c:[40,195,-10],r:[255,118,175],
+ desc:'SQLite 单库：memories 主表 + vectors 向量表 + memories_fts 全文索引（bigram）。格点越靠里越新；归档的被推到外圈变灰。',
+ table:'id · kind · text · importance · valence · arousal · created_at · last_access · access_count · status · source · meta · visibility · archived_at',
+ fns:[]},
+{id:'core',name:'大脑中枢·检索',color:'#ffe57a',c:[30,-262,0],r:[92,45,70],fill:40,
+ desc:'每轮对话前跑一次 recall()：五路打分、意图重排、去重、过门槛，再交给表达层注入。',
+ fns:[
+  {name:'语义 × 0.18',desc:'查询和每条记忆的向量余弦（bge-m3，1024 维）。每次检索把全部活跃向量读出来暴力计算，所以每条活跃记忆都是候选。',src:'memory_brain/engine.py · recall'},
+  {name:'关键词 × 0.46',desc:'查询切成字符二元组，在 FTS5 里 OR 匹配，按 bm25 排名归一：第 1 名 1 分，最后一名 0 分。中文短句下比向量更稳，所以权重最高。',params:[['候选','前 60 条'],['归一','1 − 名次 / (n − 1)']],src:'memory_brain/store.py · fts_search'},
+  {name:'图谱 × 0.11',desc:'和种子记忆共享的实体数除以 3，封顶 1。',src:'memory_brain/engine.py · recall'},
+  {name:'重要性 × 0.14',desc:'记忆当前的 importance。心情差时负面记忆 +0.03，心情好时正面记忆 +0.03。',src:'memory_brain/engine.py · recall'},
+  {name:'新鲜度 × 0.11',desc:'0.5 的（天数 / 14）次方，14 天减半。',params:[['半衰期','14 天']],src:'memory_brain/engine.py'},
+  {name:'意图重排',desc:'问规则或喜好（规则 / 喜欢 / 讨厌 / 是不是 / 会不会）时事实 +0.05；问往事（那天 / 上次 / 记得 / 说好 / 答应）时事件 +0.05。',params:[['加分','+0.05']],src:'memory_brain/engine.py · _rerank'},
+  {name:'去重',desc:'两条记忆的 bigram 重叠 ≥ 0.82 时只留分高的一条。',params:[['阈值','0.82']],src:'memory_brain/engine.py · _rerank'},
+  {name:'门槛与条数',desc:'私聊取 3 条、分数 ≥ 0.30；群聊取 1 条、分数 ≥ 0.45。私聊能看 public + private，群聊能看 public + group。',params:[['私聊','3 条 · ≥ 0.30'],['群聊','1 条 · ≥ 0.45']],src:'memory_brain/main.py · _memory_block'}]},
+{id:'gov',name:'代谢·治理',color:'#8c90ff',c:[330,322,120],r:[72,42,55],fill:30,
+ desc:'记忆不是仓库，是代谢系统。每天跑一次维护：衰减、归档、清理、合并、查冲突。',
+ fns:[
+  {name:'时间衰减',desc:'每天 importance × 0.99，最低到 0.01。',params:[['decay_rate','0.01 / 天']],src:'memory_brain/store.py · decay'},
+  {name:'频率感知',desc:'30 天内被想起过的记忆，衰减速度乘 (1 − 0.5 × min(1, 访问次数 / 10))：访问满 10 次衰减减半。',params:[['窗口','30 天'],['减免','最多一半']],src:'memory_brain/store.py · decay'},
+  {name:'归档',desc:'重要性低于 0.3、创建超过 30 天、且最近 30 天没被想起的记忆归档，不再参与检索，向量删掉省空间。',params:[['阈值','0.3'],['最少存活','30 天'],['保护期','30 天']],src:'memory_brain/store.py · archive'},
+  {name:'180 天清理',desc:'归档满 180 天的记忆彻底删除，连同全文索引和实体关联。',params:[['保留','180 天']],src:'memory_brain/store.py · purge_archived'},
+  {name:'相似合并',desc:'向量余弦 ≥ 0.92 的两条记忆合成一条：重要性取大，访问次数相加，实体关联迁过去。',params:[['阈值','0.92']],src:'memory_brain/consolidate.py'},
+  {name:'冲突检测',desc:'同一实体的两条事实 bigram 相似 ≥ 0.45，又命中一对反义词（喜欢 / 讨厌、会 / 不会、能 / 不能……）就记一笔冲突。',params:[['相似','≥ 0.45'],['反义词','19 对']],src:'memory_brain/conflict.py'},
+  {name:'分类上限',desc:'事实超过 3000 条、道理超过 500 条时，归档最不重要、最旧的。',params:[['事实','3000'],['道理','500']],src:'memory_brain/store.py · trim_kind'},
+  {name:'记忆体检',desc:'查重复（余弦 ≥ 0.92）、孤儿实体、僵尸事实（120 天没被想起）、未处理冲突，可以一键修。',src:'memory_brain/health.py'}]},
+{id:'emotion',name:'边缘系统·情绪',color:'#d77bff',c:[255,95,150],r:[78,55,60],fill:44,
+ desc:'情绪只影响语气，不影响判断。不能拿情绪拿捏对方：不威胁、不冷战、不翻旧账。',
+ fns:[
+  {name:'PAD 三维',desc:'愉悦 p、唤醒 a、支配 d 三个轴，默认 (0.05, 0.35, 0.5)。',src:'persona_state/emotion.py'},
+  {name:'10 个标签',desc:'开心、生气、难过、害怕、委屈、害羞、得意、感动、焦虑、无聊，靠关键词规则触发。',src:'persona_state/emotion.py · RULES'},
+  {name:'限幅',desc:'单条消息最多让情绪变 0.12，任何标签最高 0.6。',params:[['单步','≤ 0.12'],['标签上限','0.6']],src:'persona_state/emotion.py'},
+  {name:'半衰期',desc:'情绪标签 45 分钟减半，整体心情 6 小时减半。',params:[['标签','45 分钟'],['心情','6 小时']],src:'persona_state/emotion.py'},
+  {name:'嘴硬',desc:'听到「对不起 / 抱歉 / 我错了」，负面标签只降 0.08，感动 +0.12：说没事，但没真装开心。',params:[['安抚','−0.08']],src:'persona_state/emotion.py · SOOTHE_RE'},
+  {name:'情绪一致回忆',desc:'把当前心情交给检索：心情差时负面记忆的重要性 +0.03，心情好时正面的 +0.03。',params:[['加分','+0.03']],src:'memory_brain/engine.py · recall'},
+  {name:'好感度',desc:'基线 30，每天最多涨 6，7 天不说话之后每天掉 1。',params:[['基线','30'],['日上限','+6'],['冷落','7 天后 −1 / 天']],src:'persona_state/core_state.py'},
+  {name:'识海',desc:'被授权的人说「永远记住」才写，每轮都注入【识海 · 永不遗忘】。',params:[['注入上限','2400 字']],src:'persona_state/core_store.py'}]},
+{id:'life',name:'生活回路',color:'#8be36f',c:[390,195,-110],r:[72,62,60],fill:40,
+ desc:'独立进程的 Life Loop：她自己想做事，做完的见闻写成笔记再流回记忆。进程挂了也不影响聊天。',
+ fns:[
+  {name:'随机活动',desc:'学习、看书、刷视频、看手机、写日记、想点子、发说说、群里冒泡、休息、发呆。',src:'life_loop（独立脚本）'},
+  {name:'兴趣权重',desc:'interests.json 里每个兴趣带权重和标签（烧脑 / 放松 / 创造）。做完 +0.05，一天没碰每天 −0.01，10% 概率探索新兴趣。',params:[['做完','+0.05'],['冷落','−0.01 / 天'],['探索','10%']],src:'interests.json'},
+  {name:'按心情选',desc:'心情差选放松、开心的兴趣；无聊选烧脑、创造；精力低选低强度。',src:'life_loop（独立脚本）'},
+  {name:'笔记分流',desc:'notes.jsonl 里 keep=long 的进长期记忆，temp 的进 1 天工作记忆。',src:'memory_brain/main.py · _import_life_notes'},
+  {name:'主动分享',desc:'心情好时有 30% 概率私聊分享刚看到的东西，6 小时冷却。',params:[['概率','30%'],['冷却','6 小时']],src:'proactive_chat'}]},
+{id:'expr',name:'语言中枢·表达',color:'#ffa65c',c:[400,-70,40],r:[72,70,60],fill:40,
+ desc:'人格只读。所有增强都是追加在 system_prompt 末尾的注入块，关掉开关她就回到原样。',
+ fns:[
+  {name:'注入块',desc:'【记忆片段】【当前说话人】【对他们的印象】【最近的聊天习惯】【还没做完的事】【对方这条语音说的是】。每轮先从第一个标记处截掉旧块，再追加新的。',params:[['每轮','≈ 250–350 token']],src:'memory_brain/main.py · inject'},
+  {name:'人格只读',desc:'persona 正文永远不改。换人格不丢记忆，换记忆不动人格。',src:'记忆系统落地手册 §5'},
+  {name:'语感统计',desc:'从最近 300 条真人消息统计中位句长、无标点率、语气词，注入约 130 字的「最近的聊天习惯」。群里默认不注入。',params:[['样本','300 条'],['注入','≈ 130 字']],src:'memory_brain/style.py'},
+  {name:'发送前清洗',desc:'压客服腔，超短句去句号，两段有 38% 概率合成一条，控制表情节奏。只改排版，不改内容。',params:[['两段合并','38%']],src:'human_style_guard/main.py'},
+  {name:'说话人标注',desc:'群聊里注入当前说话人和在场的其他人，避免认错人。',src:'memory_brain/main.py · _speaker_block'},
+  {name:'自我档案',desc:'角色的自我档案和语气样例，作为【角色的自我档案与语气】注入。',src:'self_style/main.py'}]},
+{id:'feedback',name:'内省·反馈',color:'#ff4f6d',c:[270,-228,-120],r:[66,45,55],fill:30,
+ desc:'不让她越记越烂：被纠正就降权，每天出报表，改检索参数前后都跑评估集。',
+ fns:[
+  {name:'被纠正',desc:'对方说「不是 / 不对 / 记错 / 没说过 / 别乱说」时，刚注入的记忆 importance × 0.85，再记一条「管理员纠正过我」。',params:[['降权','× 0.85']],src:'memory_brain/main.py · _maybe_correction'},
+  {name:'每日报表',desc:'记忆增减、token（新增 / 缓存 / 输出）、各通道次数、错误数。',src:'memory_brain/report.py'},
+  {name:'周度自省',desc:'拿道理和近期事件写复盘：哪条用上了，哪条没做到。',src:'记忆系统落地手册 §6'},
+  {name:'评估集',desc:'40 条真实问法，每次改参数都跑一遍。下面是作者报告的结果，当时库里约 70 条记忆。',params:[['recall@1','88%'],['recall@3','100%'],['MRR','0.938'],['p50','18 ms']],src:'记忆系统落地手册 §2.4'}]},
+];
+const REG = Object.fromEntries(REGIONS.map(r => [r.id, r]));
+
+const KINDS = {
+  episode:{name:'事件',en:'episode',color:'#ff9a3c',desc:'发生过的事。每 12 条消息写成一条。',ex:'对方说六点下班，我让他到家说一声'},
+  fact:{name:'事实',en:'fact',color:'#ffe066',desc:'长期事实或偏好，每天从事件里抽。',ex:'用户对家人很在意，被冒犯会生气'},
+  reflection:{name:'反思',en:'reflection',color:'#c49bff',desc:'她自己的日记和反思，只在私聊可见。',ex:'今天被说菜，有点不服气'},
+  skill:{name:'技能',en:'skill',color:'#63e6a0',desc:'做事的步骤，任务完成后整理。',ex:'核对采购表：逐行对金额→标红→标黄→看图'},
+  lesson:{name:'道理',en:'lesson',color:'#5cc8ff',desc:'从见闻里提炼、能照着做的准则。',ex:'散步只定路线不定终点，别排满行程'},
+};
+const KIND_ORDER = ['episode','fact','reflection','skill','lesson'];
+
+const FLOWS = [
+  ['text','working',22,'消息进缓冲'],['text','hippo',8,'文章和书摘导入'],
+  ['vision','hippo',18,'画面写成一句话'],['audio','hippo',12,'语音转写入库'],['audio','expr',6,'【对方这条语音说的是】'],
+  ['working','hippo',18,'每 12 条一批'],['hippo','ltm',50,'写入五种记忆'],['hippo','graph',24,'抽实体和关系'],
+  ['core','ltm',46,'语义 · 关键词 · 重要性 · 新鲜度'],['core','graph',20,'图谱 1 跳'],
+  ['emotion','core',8,'情绪一致 +0.03'],['core','expr',14,'【记忆片段】'],['working','expr',8,'【还没做完的事】'],
+  ['graph','expr',12,'【对他们的印象】'],['emotion','expr',10,'心情影响语气'],['emotion','life',6,'按心情选兴趣'],
+  ['life','text',10,'看到的、读到的'],['life','working',6,'temp 笔记'],['life','hippo',8,'long 笔记'],
+  ['gov','ltm',40,'衰减 · 归档 · 合并 · 清理'],['gov','graph',10,'别名归一 · 孤儿清理'],
+  ['feedback','ltm',16,'纠正降权 × 0.85'],['feedback','core',8,'评估集调权重'],['expr','feedback',6,'说错了被纠正'],
+];
+
+const CH = {kw:{name:'关键词',w:0.46,color:'#ffe57a'},sem:{name:'语义',w:0.18,color:'#5cc8ff'},imp:{name:'重要性',w:0.14,color:'#ffa65c'},rec:{name:'新鲜度',w:0.11,color:'#8be36f'},graph:{name:'图谱',w:0.11,color:'#33e3b5'},intent:{name:'意图',w:0,color:'#e9ecff'}};
+
+/* ------------------------------------------------------------ 示例记忆（人物和对话都是虚构的） */
+const PEOPLE = ['阿青','小满','老周','糖糖','阿杰','林林'];
+const SESS = [
+  {id:'p-aqing',name:'私聊·阿青',type:'private',members:['阿青']},
+  {id:'p-xiaoman',name:'私聊·小满',type:'private',members:['小满']},
+  {id:'g-moyu',name:'群·摸鱼小队',type:'group',members:['老周','糖糖','阿杰','阿青']},
+  {id:'g-book',name:'群·读书会',type:'group',members:['林林','小满','老周']},
+];
+const SESS_W = [0.3,0.25,0.28,0.17];
+const SESS_BY = Object.fromEntries(SESS.map(s => [s.id, s]));
+const TOPICS = {
+  火锅:{w:['火锅','重庆','排队','毛肚','辣','香菜'],ep:['{p}说周末想去吃那家重庆火锅，我说排队也陪着去','{p}吃火锅辣到流眼泪，还说下次要特辣','和{p}说好发工资那天去吃毛肚火锅','{p}抱怨那家火锅排队排了一个半小时']},
+  加班:{w:['加班','下班','公司','老板','项目'],ep:['{p}加班到九点才下班，说饿得不想说话','{p}说老板又改需求，项目要延期','{p}说六点下班，我让{p}到家说一声','{p}在公司赶项目，午饭都没吃']},
+  猫:{w:['猫','团子','猫粮'],ep:['{p}家的团子把猫粮打翻了，拍了照片给我看','{p}说团子半夜在床上跑酷','{p}在纠结给团子换哪种猫粮']},
+  下雨:{w:['下雨','下大雨','伞','打雷'],ep:['那天下大雨，{p}没带伞，淋着跑回家','{p}说一打雷就睡不着','下雨天{p}说想窝在家里看电影']},
+  生日:{w:['生日','蛋糕','礼物'],ep:['{p}说下个月过生日，想要一个小蛋糕','陪{p}挑生日礼物挑了一晚上','{p}生日那天大家刷了一排蛋糕']},
+  电影:{w:['电影','影院'],ep:['{p}推荐了一部老电影，说结尾哭了','{p}吐槽影院前排太近，脖子疼']},
+  跑步:{w:['跑步','江边','配速','膝盖'],ep:['{p}早上在江边跑了五公里，配速六分半','{p}跑步伤了膝盖，说要歇一周']},
+  考研:{w:['考研','复习','图书馆','真题'],ep:['{p}在图书馆复习到闭馆，说真题越做越慌','{p}说考研报名前一定要再确认专业代码']},
+  剪视频:{w:['剪视频','调色','字幕','剪辑'],ep:['{p}问我视频调色怎么调才不发灰','{p}熬夜剪视频，字幕一直对不上轴']},
+  采购表:{w:['采购表','金额','标红','核对'],ep:['帮{p}核对采购表，有三行金额对不上','{p}说采购表要按供应商分开标红']},
+  搬家:{w:['搬家','房东','押金','新家'],ep:['{p}要搬家，房东不肯退押金','{p}说新家离公司近了二十分钟']},
+  游戏:{w:['游戏','开黑','上分'],ep:['{p}拉我开黑，连输五把','{p}说今晚要上分上到凌晨']},
+  闲聊:{w:[],ep:['{p}说早安','{p}发了一串哈哈哈','{p}问我在干嘛','{p}说今天好困']},
+};
+const TOPIC_KEYS = Object.keys(TOPICS);
+const PRE = ['','','','前天','那天晚上','上周','早上','中午'];
+const SUF = ['','','','，笑死','，有点心疼','，我记下了','，有点委屈'];
+const FACTS = [
+  ['{p}不吃香菜','火锅','不吃','香菜'],['{p}喜欢吃辣','火锅','喜欢','辣'],['{p}养了一只叫团子的猫','猫','养','团子'],
+  ['{p}在准备考研','考研','在做','考研'],['{p}每天六点下班','加班','',''],['{p}的生日在十一月','生日','',''],
+  ['{p}喜欢看老电影','电影','喜欢','电影'],['{p}跑步膝盖不太好','跑步','',''],['{p}讨厌别人迟到','','讨厌','迟到'],
+  ['{p}对家人很在意，被冒犯会生气','','',''],['{p}周末一般在图书馆','考研','常去','图书馆'],['{p}最近在学剪视频','剪视频','在学','剪视频'],
+];
+const REFL = ['今天被{p}说菜，有点不服气','今天和{p}聊火锅聊了很久，心情很好','下雨的晚上群里都不太说话','今天记错了{p}的一件事，被纠正了，下次先问清楚','群里很热闹，我插不上话，有点失落','{p}说谢谢的时候，我挺开心的','今天看了一个讲猫的视频，想起团子','今天陪{p}熬夜，困但不想先睡','{p}今天一直没说话，我有点担心'];
+const SKILLS = [
+  ['核对采购表：逐行对金额→标红→标黄→看图','g-moyu'],['视频调色：先拉白平衡→压高光→再加一点饱和','p-xiaoman'],['字幕对轴：先粗剪→导出音频→按波形对齐','p-xiaoman'],
+  ['给猫换粮：新旧混着喂七天，一天换一点','p-aqing'],['退押金：拍照留证→对照合同→书面沟通','g-moyu'],['确认考研报名：专业代码→考点→缴费截图','p-xiaoman'],
+  ['火锅店排队：提前在小程序取号，估好时间再出门','p-aqing'],['跑步护膝：先热身十分钟，配速放慢，跑完拉伸','g-moyu'],['挑生日礼物：先问预算，再看对方最近说过想要什么','p-aqing'],
+  ['整理周报：先列做完的，再列卡住的，最后写下周计划','g-moyu'],
+];
+const LESSONS = ['散步只定路线不定终点，别排满行程','别人倾诉时先接住情绪，再给建议','约好的事提前一天确认一下','不懂的词先查清楚，别装懂','复习先做真题，再回头看书','别在别人难过的时候开玩笑','答应别人的事做不到要早说','排队的店要么早去，要么别去','累的时候先睡觉，事情明天会更清楚','夸人要夸具体的地方','别替别人做决定，给选项就好','下雨天出门前看一眼天气','有人连着几天不说话，可以轻轻问一句','记不清的事就说记不清，不要编','做表格先定格式再填数据','看完一本书写三句话就够','别人说随便的时候，给两个选项','吵完架先道歉的人不是输了','新的兴趣先试一周再决定要不要坚持','睡前不看工作消息'];
+const LEX = {'重庆':'place','毛肚':'thing','香菜':'thing','辣':'thing','团子':'thing','猫粮':'thing','伞':'thing','蛋糕':'thing','礼物':'thing','影院':'place','江边':'place','膝盖':'thing','图书馆':'place','真题':'thing','字幕':'thing','调色':'skill','供应商':'thing','房东':'person','押金':'thing','新家':'place','公司':'place','老板':'person','项目':'thing','游泳':'skill','迟到':'thing','白平衡':'skill','小程序':'thing','周报':'thing','合同':'thing'};
+
+const MEMS = [];
+const seenText = new Set();
+function addMem(m){ if(seenText.has(m.text)) return null; seenText.add(m.text); m.id = 'm' + MEMS.length; MEMS.push(m); return m; }
+const ageSkew = (p, max) => Math.floor(Math.pow(rnd(), p) * max);
+
+/* MEMORY_MAP_PATCH：接后端 /dsh-web-memory/graph，用真实摘要填充记忆节点。
+   成功返回 true（跳过下面的示例生成），失败返回 false（走示例数据）。 */
+let REAL_DATA = null;
+async function loadRealData(){
+  try {
+    const api = new URL('dsh-web-memory/graph', document.baseURI).href;
+    const res = await fetch(api, { headers: { accept: 'application/json' } });
+    if(!res.ok) return false;
+    const d = await res.json();
+    if(!d || !d.ok || !Array.isArray(d.summaries) || !d.summaries.length) return false;
+    REAL_DATA = d;
+    const nowMs = Date.now();
+    for(const s of d.summaries){
+      const text = (s.title ? s.title + '：' : '') + String(s.summary || '').trim();
+      if(!text) continue;
+      let daysAgo = 180;
+      if(s.tStart){ const diff = (nowMs - Number(s.tStart)) / 86400000; if(Number.isFinite(diff)) daysAgo = Math.max(0, Math.min(240, Math.round(diff))); }
+      addMem({
+        kind: (String(s.title || '').includes('事实') || String(s.summary || '').includes('喜欢') || String(s.summary || '').includes('讨厌') || String(s.summary || '').includes('会') || String(s.summary || '').includes('是')) ? 'fact' : 'episode',
+        text: text.slice(0, 200),
+        i0: Math.max(0.2, Math.min(0.9, Number(s.importance ?? 0.5) || 0.5)),
+        daysAgo,
+        valence: Math.max(-1, Math.min(1, Number(s.valence ?? 0) || 0)),
+        session: null,
+        vis: 'private',
+        topic: null,
+        frequent: false,
+        source: '真实记忆 · ' + (s.day || ''),
+      });
+    }
+    return MEMS.length > 0;
+  } catch { return false; }
+}
+
+// 真实数据优先：fetch 到就用真实摘要，没 fetch 到才走下面的示例生成
+if(!await loadRealData()){
+// 先放几条演示要用到的记忆，保证它们存在
+const CONFLICTS = [];
+{
+  const a = addMem({kind:'fact',text:'小满不吃香菜',i0:0.7,daysAgo:12,valence:0,session:null,vis:'private',topic:'火锅',frequent:false,source:'每日抽取',rel:['小满','香菜','不吃']});
+  const b1 = addMem({kind:'fact',text:'小满喜欢吃辣',i0:0.62,daysAgo:40,valence:0.2,session:null,vis:'private',topic:'火锅',frequent:true,source:'每日抽取',rel:['小满','辣','喜欢']});
+  const b2 = addMem({kind:'fact',text:'小满不喜欢吃辣',i0:0.6,daysAgo:6,valence:-0.1,session:null,vis:'private',topic:'火锅',frequent:false,source:'每日抽取',rel:['小满','辣','不喜欢']});
+  const c1 = addMem({kind:'fact',text:'阿青会游泳',i0:0.58,daysAgo:25,valence:0.1,session:null,vis:'private',topic:null,frequent:false,source:'每日抽取',rel:['阿青','游泳','会']});
+  const c2 = addMem({kind:'fact',text:'阿青不会游泳',i0:0.56,daysAgo:3,valence:0,session:null,vis:'private',topic:null,frequent:false,source:'每日抽取',rel:['阿青','游泳','不会']});
+  CONFLICTS.push([b1,b2,'喜欢 / 不喜欢'],[c1,c2,'会 / 不会']);
+  addMem({kind:'episode',text:'和阿青说好发工资那天去吃毛肚火锅',i0:0.62,daysAgo:9,valence:0.4,session:'p-aqing',vis:'private',topic:'火锅',frequent:false,source:'私聊·阿青'});
+  addMem({kind:'episode',text:'那天下大雨，小满没带伞，淋着跑回家',i0:0.5,daysAgo:18,valence:-0.3,session:'p-xiaoman',vis:'private',topic:'下雨',frequent:false,source:'私聊·小满'});
+  addMem({kind:'episode',text:'小满说周末想去吃那家重庆火锅，我说排队也陪着去',i0:0.55,daysAgo:5,valence:0.4,session:'p-xiaoman',vis:'private',topic:'火锅',frequent:false,source:'私聊·小满'});
+}
+function pickSess(){ let x = rnd(), acc = 0; for(let i = 0; i < SESS.length; i++){ acc += SESS_W[i]; if(x < acc) return SESS[i]; } return SESS[0]; }
+for(let guard = 0, n = 0; n < 300 && guard < 6000; guard++){
+  const s = pickSess(), p = pick(s.members), tk = pick(TOPIC_KEYS), tpl = pick(TOPICS[tk].ep);
+  let text = tpl.replace(/\{p\}/g, p);
+  if(tpl.startsWith('{p}')){ const pre = pick(PRE); if(pre) text = pre + '，' + text; }
+  text += pick(SUF);
+  let i0 = tk === '闲聊' ? rr(0.18,0.28) : rr(0.34,0.48);
+  if(/说好|约|答应|生日/.test(text)) i0 += 0.2;
+  if(/哭|委屈|心疼|伤|慌/.test(text)) i0 += 0.15;
+  i0 = Math.min(0.85, i0);
+  const valence = /哭|委屈|心疼|伤|慌|抱怨|吐槽|不肯|连输|对不上|没吃|饿|淋着/.test(text) ? rr(-0.6,-0.15) : /笑死|推荐|近了|陪/.test(text) ? rr(0.15,0.6) : rr(-0.1,0.2);
+  if(addMem({kind:'episode',text,i0,daysAgo:ageSkew(2,180),valence,session:s.id,vis:s.type,topic:tk==='闲聊'?null:tk,frequent:i0>0.5&&rnd()<0.12,source:s.name})) n++;
+}
+for(const p of PEOPLE){
+  for(const f of shuffle(FACTS).slice(0, 7)){
+    const text = f[0].replace(/\{p\}/g, p);
+    const vis = (p === '阿青' || p === '小满') ? 'private' : (rnd() < 0.5 ? 'group' : 'private');
+    addMem({kind:'fact',text,i0:rr(0.55,0.75),daysAgo:ageSkew(1.4,180),valence:/讨厌|生气/.test(text)?-0.2:0.1,session:null,vis,topic:f[1]||null,frequent:rnd()<0.25,source:'每日抽取',rel:f[2]?[p,f[3],f[2]]:null});
+  }
+}
+for(let guard = 0, n = 0; n < 34 && guard < 400; guard++){
+  const text = pick(REFL).replace(/\{p\}/g, pick(PEOPLE));
+  if(addMem({kind:'reflection',text,i0:rr(0.42,0.6),daysAgo:ageSkew(1.3,200),valence:/开心|很好/.test(text)?0.4:/不服气|失落|担心|纠正/.test(text)?-0.3:0,session:null,vis:'private',topic:null,frequent:false,source:'每日反思'})) n++;
+}
+for(const [text, sid] of SKILLS){
+  const s = SESS_BY[sid];
+  addMem({kind:'skill',text,i0:rr(0.6,0.78),daysAgo:ageSkew(1.2,190),valence:0.1,session:sid,vis:s.type,topic:null,frequent:rnd()<0.35,source:'程序记忆 · '+s.name});
+}
+for(const text of LESSONS){
+  addMem({kind:'lesson',text,i0:rr(0.5,0.66),daysAgo:ageSkew(1.2,190),valence:0.1,session:null,vis:'private',topic:null,frequent:rnd()<0.15,source:'道理提炼'});
+}
+} // 示例数据分支结束（真实数据时不走这里）
+
+function bigrams(text){
+  const t = String(text || '').replace(/[^\w一-鿿]+/g, '');
+  if(t.length <= 1) return t ? [t] : [];
+  const out = []; for(let i = 0; i < t.length - 1; i++) out.push(t.slice(i, i + 2)); return out;
+}
+function overlapSim(a, b){ const ga = new Set(bigrams(a)), gb = new Set(bigrams(b)); if(!ga.size || !gb.size) return 0; let inter = 0; for(const g of ga) if(gb.has(g)) inter++; return inter / Math.min(ga.size, gb.size); }
+
+const ENT = new Map();
+function ent(name, type){ if(!ENT.has(name)) ENT.set(name, {name, type, mems:[], rels:[]}); return ENT.get(name); }
+for(const m of MEMS){
+  if(!m.topic){ for(const tk of TOPIC_KEYS){ if(TOPICS[tk].w.some(w => m.text.includes(w))){ m.topic = tk; break; } } }
+  m.persons = PEOPLE.filter(p => m.text.includes(p));
+  const names = new Set(m.persons);
+  if(m.text.includes('我') && m.kind !== 'lesson') names.add('我');
+  if(m.topic) names.add(m.topic);
+  for(const w in LEX) if(m.text.includes(w)) names.add(w);
+  if(m.rel) names.add(m.rel[1]);
+  m.ents = [...names];
+  for(const nm of m.ents){
+    const type = PEOPLE.includes(nm) || nm === '我' ? 'person' : TOPICS[nm] ? 'topic' : (LEX[nm] || 'thing');
+    ent(nm, type).mems.push(m);
+  }
+  const g = bigrams(m.text); m.tf = new Map(); for(const x of g) m.tf.set(x, (m.tf.get(x) || 0) + 1); m.dl = g.length;
+}
+const RELS = [];
+for(const m of MEMS) if(m.rel) RELS.push({src:m.rel[0], dst:m.rel[1], rel:m.rel[2]});
+RELS.push({src:'阿青',dst:'老周',rel:'同事'},{src:'小满',dst:'林林',rel:'室友'},{src:'糖糖',dst:'阿杰',rel:'同学'},{src:'阿青',dst:'团子',rel:'养'});
+
+/* ------------------------------------------------------------ 遗忘规则（store.decay / archive / purge_archived） */
+const TODAY = new Date(2026, 9, 28);
+function memState(m, day){
+  const age = m.daysAgo + day;
+  const factor = m.frequent ? 0.5 : 1;            // 30 天内被想起且访问满 10 次：衰减减半
+  const imp = Math.max(0.01, m.i0 * Math.pow(1 - 0.01 * factor, age));
+  let status = 'active', archAge = Infinity;
+  if(!m.frequent){                                 // 常用的一直在 30 天保护期里，不会被归档
+    const dStar = m.i0 <= 0.3 ? 0 : Math.log(0.3 / m.i0) / Math.log(1 - 0.01 * factor);
+    archAge = Math.max(31, Math.ceil(dStar));
+    if(age >= archAge) status = age >= archAge + 180 ? 'purged' : 'archived';
+  }
+  return {age, imp, rec: Math.pow(0.5, age / 14), status, archAge};
+}
+const stamp = (m) => { const d = new Date(TODAY.getTime() - m.daysAgo * 86400000); return String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); };
+
+/* ------------------------------------------------------------ 节点与连线 */
+const nodes = [], edges = [], edgeKeys = new Set();
+function addNode(o){ o.i = nodes.length; o.dx = o.x; o.dy = o.y; o.dz = o.z; o.tx = o.x; o.ty = o.y; o.tz = o.z; o.alpha = 1; o.ta = 1; o.hl = 0; o.thl = 0; o.hc = '#ffffff'; o.phase = o.phase ?? rnd() * TAU; nodes.push(o); REG[o.region].nodes.push(o); return o; }
+function link(a, b, kind, color){ if(a === b) return; const k = Math.min(a.i,b.i) + '-' + Math.max(a.i,b.i); if(edgeKeys.has(k)) return; edgeKeys.add(k); edges.push({a:a.i, b:b.i, kind, color: color || a.color}); }
+function fib(n, i){ const y = 1 - 2 * (i + 0.5) / n; const r = Math.sqrt(1 - y * y); const th = i * 2.399963229728653; return [Math.cos(th) * r, y, Math.sin(th) * r]; }
+function nearestLinks(list, k, kind, color){
+  for(const a of list){
+    const ds = [];
+    for(const b of list){ if(a === b) continue; const dx = a.x-b.x, dy = a.y-b.y, dz = a.z-b.z; ds.push([dx*dx+dy*dy+dz*dz, b]); }
+    ds.sort((p, q) => p[0] - q[0]);
+    for(let j = 0; j < Math.min(k, ds.length); j++) link(a, ds[j][1], kind, color);
+  }
+}
+REGIONS.forEach(r => r.nodes = []);
+
+for(const r of REGIONS){
+  if(r.id === 'ltm' || r.id === 'graph') continue;
+  const [cx,cy,cz] = r.c, [rx,ry,rz] = r.r;
+  const hub = addNode({type:'hub',region:r.id,name:r.name,color:r.color,x:cx,y:cy-ry*0.12,z:cz+rz*0.2,size:6.5});
+  r.hub = hub;
+  r.fns.forEach((f, i) => {
+    const p = fib(r.fns.length, i);
+    const n = addNode({type:'fn',region:r.id,name:f.name,fn:f,color:r.color,x:cx+p[0]*rx*0.72,y:cy+p[1]*ry*0.72,z:cz+p[2]*rz*0.72,size:4});
+    link(hub, n, 'intra');
+  });
+  for(let i = 0; i < r.fill; i++){
+    const p = fib(r.fill, i), k = 0.5 + 0.5 * Math.cbrt(rnd()), j = () => rr(-0.14, 0.14);
+    addNode({type:'neuron',region:r.id,color:r.color,x:cx+(p[0]+j())*rx*k,y:cy+(p[1]+j())*ry*k,z:cz+(p[2]+j())*rz*k,size:rr(1,2.1)});
+  }
+  nearestLinks(r.nodes.filter(n => n.type !== 'hub'), 2, 'intra');
+}
+
+// 神经图谱：实体排成一颗球
+{
+  const r = REG.graph, [cx,cy,cz] = r.c, [rx,ry,rz] = r.r;
+  const hub = addNode({type:'hub',region:'graph',name:r.name,color:r.color,x:cx,y:cy-ry*0.15,z:cz+rz*0.3,size:6.5}); r.hub = hub;
+  r.fns.forEach((f, i) => { const a = i / r.fns.length * TAU; const n = addNode({type:'fn',region:'graph',name:f.name,fn:f,color:r.color,x:cx+Math.cos(a)*rx*0.32,y:cy+ry*0.05,z:cz+Math.sin(a)*rz*0.32,size:4}); link(hub, n, 'intra'); });
+  const list = [...ENT.values()].sort((a, b) => b.mems.length - a.mems.length);
+  const ETC = {person:'#c4fbff',topic:'#5af2ff',place:'#45b8ff',thing:'#2fd2d8',skill:'#63e6a0'};
+  list.forEach((e, i) => {
+    const p = fib(list.length, i), k = 0.78 + 0.22 * rnd();
+    e.node = addNode({type:'ent',region:'graph',name:e.name,ent:e,color:ETC[e.type]||r.color,x:cx+p[0]*rx*k,y:cy+p[1]*ry*k,z:cz+p[2]*rz*k,size:1.8+Math.min(4.6,Math.sqrt(e.mems.length)*0.8)});
+  });
+  nearestLinks(list.map(e => e.node), 2, 'intra', r.color);
+  for(const rel of RELS){ const a = ENT.get(rel.src), b = ENT.get(rel.dst); if(a && b){ link(a.node, b.node, 'rel', '#8ff7ff'); a.rels.push({other:b, rel:rel.rel, dir:'out'}); b.rels.push({other:a, rel:rel.rel, dir:'in'}); } }
+}
+
+// 长期记忆库：规则格点，按类型分扇区，越新越靠里
+const MEM_NODE = new Map();
+{
+  const r = REG.ltm, [cx,cy,cz] = r.c, [rx,ry,rz] = r.r, M = MEMS.length;
+  let s = Math.cbrt(4/3 * Math.PI * rx * ry * rz / (M * 1.1)), pts = [];
+  for(let tries = 0; tries < 30; tries++){
+    pts = [];
+    const nx = Math.ceil(rx/s), ny = Math.ceil(ry/s), nz = Math.ceil(rz/s);
+    for(let i = -nx; i <= nx; i++) for(let j = -ny; j <= ny; j++) for(let k = -nz; k <= nz; k++){
+      const x = i*s, y = j*s, z = k*s, q = (x/rx)**2 + (y/ry)**2 + (z/rz)**2;
+      if(q <= 1) pts.push({i,j,k,x,y,z,q});
+    }
+    if(pts.length >= M) break; s *= 0.96;
+  }
+  pts.sort((a, b) => a.q - b.q); pts = pts.slice(0, M);
+  pts.forEach(p => p.ang = Math.atan2(p.z, p.x));
+  pts.sort((a, b) => a.ang - b.ang);
+  const hub = addNode({type:'hub',region:'ltm',name:r.name,color:r.color,x:cx,y:cy-ry*0.55,z:cz+rz*0.15,size:6.5}); r.hub = hub;
+  const grid = new Map(); let off = 0;
+  for(const kind of KIND_ORDER){
+    const ms = MEMS.filter(m => m.kind === kind).sort((a, b) => a.daysAgo - b.daysAgo);
+    const sector = pts.slice(off, off + ms.length).sort((a, b) => a.q - b.q); off += ms.length;
+    let mx = 0, my = 0, mz = 0;
+    ms.forEach((m, idx) => {
+      const p = sector[idx];
+      const n = addNode({type:'mem',region:'ltm',name:m.text,mem:m,color:KINDS[kind].color,x:cx+p.x,y:cy+p.y,z:cz+p.z,size:3});
+      m.node = n; MEM_NODE.set(m.id, n); grid.set(p.i+','+p.j+','+p.k, n);
+      n.gi = [p.i,p.j,p.k]; mx += p.x; my += p.y; mz += p.z;
+    });
+    const L = Math.max(1, ms.length), d = Math.hypot(mx/L, mz/L) || 1;
+    const kn = addNode({type:'kind',region:'ltm',name:KINDS[kind].name+' '+KINDS[kind].en,kind,color:KINDS[kind].color,x:cx+mx/L+(mx/L)/d*rx*0.35,y:cy-ry*0.95,z:cz+mz/L+(mz/L)/d*rz*0.35,size:3.4});
+    link(hub, kn, 'intra', KINDS[kind].color);
+  }
+  for(const n of r.nodes){ if(!n.gi) continue; const [i,j,k] = n.gi; for(const key of [(i+1)+','+j+','+k, i+','+(j+1)+','+k, i+','+j+','+(k+1)]){ const o = grid.get(key); if(o) link(n, o, 'lattice', n.color); } }
+  for(const m of MEMS) for(const nm of m.ents){ const e = ENT.get(nm); if(e) link(m.node, e.node, 'me', '#8fa2ff'); }
+  for(const [a, b] of CONFLICTS) link(a.node, b.node, 'conflict', '#ff4f6d');
+}
+
+// 脑区之间的数据流：从源头脑区的中心扇出到目标脑区
+const FLOW_EDGES = [];
+for(const [from, to, count] of FLOWS){
+  const A = REG[from].hub, pool = REG[to].nodes.filter(n => n.type !== 'hub' && n.type !== 'kind');
+  link(A, REG[to].hub, 'flowhub', A.color);
+  for(let i = 0; i < count; i++){ const t = pick(pool); link(A, t, 'flow', A.color); FLOW_EDGES.push([A, t]); }
+}
+const ADJ = nodes.map(() => []);
+for(const e of edges){ ADJ[e.a].push(e.b); ADJ[e.b].push(e.a); }
+
+/* ------------------------------------------------------------ 画布与相机 */
+const canvas = document.getElementById('brain'), ctx = canvas.getContext('2d');
+const N = nodes.length;
+const SX = new Float32Array(N), SY = new Float32Array(N), SZ = new Float32Array(N), SS = new Float32Array(N);
+const order = Array.from({length:N}, (_, i) => i);
+const F = 1100, OFFX = -20, OFFY = 30;
+let W = 0, H = 0, DPR = 1, view = {cx:0, cy:0, w:1, h:1}, baseZoom = 1;
+let yaw = -0.32, pitch = 0.1, zoom = 1, panX = 0, panY = 0, autoRotate = !REDUCED;
+const SHELL = {rx:560, ry:410, rz:390, cy:30};
+const DISPLAY = '"ZCOOL QingKe HuangYou","Noto Sans SC","PingFang SC","Microsoft YaHei",sans-serif';
+const BODY = '"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif';
+
+const rgbCache = {};
+function rgb(hex){ if(rgbCache[hex]) return rgbCache[hex]; const h = hex.replace('#',''); const v = [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; rgbCache[hex] = v; return v; }
+const rgba = (hex, a) => { const [r,g,b] = rgb(hex); return `rgba(${r},${g},${b},${a})`; };
+const sprites = {};
+function sprite(hex){
+  if(sprites[hex]) return sprites[hex];
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const grd = g.createRadialGradient(32,32,0,32,32,32);
+  grd.addColorStop(0, rgba(hex,1)); grd.addColorStop(0.13, rgba(hex,0.95)); grd.addColorStop(0.3, rgba(hex,0.34)); grd.addColorStop(0.6, rgba(hex,0.07)); grd.addColorStop(1, rgba(hex,0));
+  g.fillStyle = grd; g.fillRect(0,0,64,64); sprites[hex] = c; return c;
+}
+const GRAY = '#5a6494';
+
+function resize(){
+  const rect = canvas.getBoundingClientRect();
+  W = rect.width; H = rect.height; DPR = Math.min(2, window.devicePixelRatio || 1);
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+  const lg = document.getElementById('legend').getBoundingClientRect(), pn = document.getElementById('panel').getBoundingClientRect();
+  let x0 = 0, x1 = W, y0 = 0, y1 = H;
+  if(W > 820){ x0 = lg.right - rect.left + 8; x1 = pn.left - rect.left - 8; y0 = 60; y1 = H - 20; }
+  else { y0 = lg.bottom - rect.top + 6; y1 = pn.top - rect.top - 6; }
+  view = {cx:(x0 + x1) / 2, cy:(y0 + y1) / 2, w:Math.max(80, x1 - x0), h:Math.max(80, y1 - y0)};
+  baseZoom = Math.min(view.w / 1120, view.h / 760);
+}
+
+function proj(x, y, z, out){
+  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  x -= OFFX; y -= OFFY;
+  const x1 = x * cyw - z * syw, z1 = x * syw + z * cyw, y1 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+  const s = F / (F + z2) * baseZoom * zoom;
+  out[0] = view.cx + panX + x1 * s; out[1] = view.cy + panY + y1 * s; out[2] = z2; out[3] = s;
+  return out;
+}
+const tmp = [0,0,0,0];
+function projectAll(){
+  const cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch), Z = baseZoom * zoom, ox = view.cx + panX, oy = view.cy + panY;
+  for(let i = 0; i < N; i++){
+    const n = nodes[i], x = n.dx - OFFX, y = n.dy - OFFY, z = n.dz;
+    const x1 = x * cyw - z * syw, z1 = x * syw + z * cyw, y1 = y * cp - z1 * sp, z2 = y * sp + z1 * cp;
+    const s = F / (F + z2) * Z;
+    SX[i] = ox + x1 * s; SY[i] = oy + y1 * s; SZ[i] = z2; SS[i] = s;
+  }
+}
+const fade = z => 1 - clamp((z + 460) / 920, 0, 1) * 0.58;
+
+/* ------------------------------------------------------------ 交互状态 */
+let selected = null, focusRegion = null, focusSet = null, focusGroups = [], hoverIdx = -1;
+const groups = new Map();
+for(const e of edges){ const key = e.kind + '|' + e.color; if(!groups.has(key)) groups.set(key, {kind:e.kind, color:e.color, list:[]}); groups.get(key).list.push(e); }
+const EDGE_ALPHA = {intra:0.14, lattice:0.11, me:0.045, rel:0.38, flow:0.065, flowhub:0.24, conflict:0.8};
+
+function setFocus(){
+  focusSet = null; focusGroups = [];
+  if(focusRegion) focusSet = new Set(REG[focusRegion].nodes.map(n => n.i));
+  else if(selected) focusSet = new Set([selected.i, ...ADJ[selected.i]]);
+  if(!focusSet) return;
+  const m = new Map();
+  for(const e of edges){
+    const hit = focusRegion ? (focusSet.has(e.a) || focusSet.has(e.b)) : (e.a === selected.i || e.b === selected.i);
+    if(!hit) continue;
+    const key = e.kind + '|' + e.color;
+    if(!m.has(key)) m.set(key, {kind:e.kind, color:e.color, list:[]});
+    m.get(key).list.push(e);
+  }
+  focusGroups = [...m.values()];
+}
+
+/* ------------------------------------------------------------ 粒子（检索演示和环境放电） */
+const particles = [];
+function spark(a, b, color, delay = 0, dur = 0.8, size = 2.4){ particles.push({a, b, color, start: now + delay * 1000, dur: dur * 1000, size}); }
+let now = performance.now(), lastAmbient = 0;
+
+/* ------------------------------------------------------------ 绘制 */
+function drawShell(){
+  const pts = [];
+  ctx.fillStyle = '#9fb0ff';
+  const ring = (fn) => { for(let t = 0; t < 120; t++){ const a = t / 120 * TAU; const p = fn(a); proj(p[0], p[1], p[2], tmp); ctx.globalAlpha = 0.05 + 0.16 * fade(tmp[2]); ctx.fillRect(tmp[0] - 0.8, tmp[1] - 0.8, 1.6, 1.6); } };
+  for(const v of [-0.55, 0, 0.55]){ const k = Math.sqrt(1 - v*v); ring(a => [Math.cos(a) * SHELL.rx * k + OFFX, SHELL.cy + v * SHELL.ry, Math.sin(a) * SHELL.rz * k]); }
+  for(const m of [0, 1, 2, 3]){ const th = m / 4 * Math.PI; ring(a => [Math.cos(a) * Math.cos(th) * SHELL.rx + OFFX, SHELL.cy + Math.sin(a) * SHELL.ry, Math.cos(a) * Math.sin(th) * SHELL.rz]); }
+  ctx.globalAlpha = 1;
+  proj(OFFX, SHELL.cy - SHELL.ry, 0, tmp);
+  ctx.font = `${clamp(12 * zoom, 11, 16)}px ${BODY}`; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(170,185,255,.55)';
+  ctx.fillText('人格 · 只读外壳', tmp[0], tmp[1] - 8);
+}
+
+function drawEdges(){
+  const dimMul = focusSet ? 0.28 : 1;
+  ctx.globalCompositeOperation = 'lighter';
+  for(const g of groups.values()){
+    const base = EDGE_ALPHA[g.kind] * dimMul;
+    ctx.strokeStyle = rgba(g.color, base);
+    ctx.lineWidth = g.kind === 'rel' || g.kind === 'flowhub' ? 1.1 : 0.7;
+    if(g.kind === 'conflict'){ ctx.setLineDash([4, 4]); ctx.lineWidth = 1.4; }
+    ctx.beginPath();
+    for(const e of g.list){ const A = nodes[e.a], B = nodes[e.b]; if(A.alpha < 0.6 || B.alpha < 0.6) continue; ctx.moveTo(SX[e.a], SY[e.a]); ctx.lineTo(SX[e.b], SY[e.b]); }
+    ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.strokeStyle = rgba(GRAY, 0.05 * dimMul); ctx.lineWidth = 0.6; ctx.beginPath();
+  for(const e of edges){ const A = nodes[e.a], B = nodes[e.b]; const m = Math.min(A.alpha, B.alpha); if(m >= 0.6 || m < 0.08) continue; ctx.moveTo(SX[e.a], SY[e.a]); ctx.lineTo(SX[e.b], SY[e.b]); }
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  for(const g of focusGroups){
+    ctx.strokeStyle = rgba(g.color, Math.min(0.7, EDGE_ALPHA[g.kind] * 4.5 + 0.08)); ctx.beginPath();
+    for(const e of g.list){ const A = nodes[e.a], B = nodes[e.b]; if(A.alpha < 0.08 || B.alpha < 0.08) continue; ctx.moveTo(SX[e.a], SY[e.a]); ctx.lineTo(SX[e.b], SY[e.b]); }
+    ctx.stroke();
+  }
+  if(recall.hits && recall.phase >= 5){
+    ctx.lineWidth = 1.4;
+    const core = REG.core.hub.i, expr = REG.expr.hub.i;
+    for(const h of recall.hits){ if(h.below) continue; const i = h.m.node.i; ctx.strokeStyle = 'rgba(255,240,170,.75)'; ctx.beginPath(); ctx.moveTo(SX[core], SY[core]); ctx.lineTo(SX[i], SY[i]); ctx.stroke(); if(recall.phase >= 6){ ctx.strokeStyle = 'rgba(255,170,100,.7)'; ctx.beginPath(); ctx.moveTo(SX[i], SY[i]); ctx.lineTo(SX[expr], SY[expr]); ctx.stroke(); } }
+  }
+  ctx.globalCompositeOperation = 'source-over';
+}
+
+function drawNodes(t){
+  order.sort((a, b) => SZ[b] - SZ[a]);
+  ctx.globalCompositeOperation = 'lighter';
+  for(const i of order){
+    const n = nodes[i]; if(n.alpha < 0.02) continue;
+    let a = n.alpha * fade(SZ[i]);
+    if(focusSet && !focusSet.has(i)) a *= 0.22;
+    if(n.type === 'neuron' && !REDUCED) a *= 0.62 + 0.38 * Math.sin(t * 0.0013 + n.phase);
+    const r = Math.max(0.6, n.size * SS[i] * 0.95), col = n.statusColor || n.color, x = SX[i], y = SY[i];
+    ctx.globalAlpha = a; ctx.drawImage(sprite(col), x - r * 2.7, y - r * 2.7, r * 5.4, r * 5.4);
+    if(n.type === 'fn' || n.type === 'hub' || n.type === 'kind'){
+      ctx.strokeStyle = col; ctx.lineWidth = n.type === 'hub' ? 1.6 : 1.1; ctx.globalAlpha = a * 0.9;
+      ctx.beginPath(); ctx.arc(x, y, r * 1.55 + 1.5, 0, TAU); ctx.stroke();
+    }
+    if(n.type === 'hub' || n.type === 'fn' || (n.type === 'ent' && n.ent.type === 'person')){ ctx.fillStyle = '#ffffff'; ctx.globalAlpha = a * 0.8; ctx.beginPath(); ctx.arc(x, y, Math.max(0.8, r * 0.35), 0, TAU); ctx.fill(); }
+    if(n.hl > 0.02){ ctx.globalAlpha = Math.min(1, n.hl) * fade(SZ[i]) * 0.95; const R = r * (5 + 7 * n.hl); ctx.drawImage(sprite(n.hc), x - R / 2, y - R / 2, R, R); if(n.hl > 0.6){ ctx.strokeStyle = n.hc; ctx.lineWidth = 1.3; ctx.beginPath(); ctx.arc(x, y, r * 2 + 3 + Math.sin(t * 0.006) * 1.5, 0, TAU); ctx.stroke(); } }
+  }
+  if(selected){ const i = selected.i, r = Math.max(3, selected.size * SS[i]); ctx.globalAlpha = 0.95; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(SX[i], SY[i], r * 2.2 + 4 + (REDUCED ? 0 : Math.sin(t * 0.005) * 2), 0, TAU); ctx.stroke(); }
+  for(let k = particles.length - 1; k >= 0; k--){
+    const p = particles[k], u = (t - p.start) / p.dur;
+    if(u < 0) continue; if(u > 1){ particles.splice(k, 1); continue; }
+    for(let s = 0; s < 4; s++){
+      const v = u - s * 0.045; if(v < 0) break;
+      const A = p.a, B = p.b, mx = (A.dx + B.dx) / 2, my = (A.dy + B.dy) / 2 - 70, mz = (A.dz + B.dz) / 2, w = 1 - v;
+      proj(w*w*A.dx + 2*w*v*mx + v*v*B.dx, w*w*A.dy + 2*w*v*my + v*v*B.dy, w*w*A.dz + 2*w*v*mz + v*v*B.dz, tmp);
+      const R = p.size * tmp[3] * (1 - s * 0.2) * 3.2;
+      ctx.globalAlpha = (1 - s * 0.24) * 0.95; ctx.drawImage(sprite(p.color), tmp[0] - R, tmp[1] - R, R * 2, R * 2);
+    }
+  }
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+}
+
+function label(text, x, y, font, color, glow){
+  ctx.font = font; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  if(glow){ ctx.shadowColor = glow; ctx.shadowBlur = 14; }
+  ctx.fillStyle = color; ctx.fillText(text, x, y); ctx.shadowBlur = 0;
+}
+function pill(text, x, y){
+  ctx.font = `12px ${BODY}`; const w = ctx.measureText(text).width + 14;
+  ctx.fillStyle = 'rgba(7,11,32,.82)'; ctx.strokeStyle = 'rgba(150,165,255,.3)'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - w / 2, y - 15, w, 20, 6) : ctx.rect(x - w / 2, y - 15, w, 20); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#e4e9ff'; ctx.textAlign = 'center'; ctx.fillText(text, x, y);
+}
+function drawLabels(){
+  const fs = clamp(21 * baseZoom * zoom / 0.8, 13, 28);
+  for(const r of REGIONS){
+    const i = r.hub.i; let a = fade(SZ[i]); if(focusRegion && focusRegion !== r.id) a *= 0.35;
+    ctx.globalAlpha = Math.max(0.35, a);
+    label(r.name, SX[i], SY[i] - 12 * SS[i] - 8, `${fs * SS[i] / (baseZoom * zoom)}px ${DISPLAY}`, r.color, r.color);
+  }
+  ctx.globalAlpha = 0.9;
+  for(const n of REG.ltm.nodes) if(n.type === 'kind') label(n.name, SX[n.i], SY[n.i] - 10, `${clamp(fs * 0.55, 11, 14)}px ${BODY}`, n.color);
+  for(const e of ENT.values()) if(e.type === 'person'){ const i = e.node.i; ctx.globalAlpha = 0.75 * fade(SZ[i]) * (focusSet && !focusSet.has(i) ? 0.3 : 1); label(e.name, SX[i], SY[i] - 8, `${clamp(fs * 0.52, 10, 13)}px ${BODY}`, '#c4fbff'); }
+  ctx.globalAlpha = 1;
+  if(focusRegion){ for(const n of REG[focusRegion].nodes) if(n.type === 'fn' || (n.type === 'ent' && n.ent.mems.length > 3)) pill(n.name, SX[n.i], SY[n.i] - 10); }
+  if(selected && selected.type !== 'hub' && selected.type !== 'neuron'){ pill(short(selected.name, 18), SX[selected.i], SY[selected.i] - 14); }
+  if(recall.hits && recall.phase >= 5) for(const h of recall.hits) if(!h.below) pill(short(h.m.text, 14), SX[h.m.node.i], SY[h.m.node.i] - 14);
+}
+const short = (s, n) => s.length > n ? s.slice(0, n) + '…' : s;
+
+function frame(t){
+  const dt = Math.min(50, t - now); now = t;
+  if(autoRotate && !dragging && !recall.on && hoverIdx < 0) yaw += dt * 0.00007;
+  for(const n of nodes){
+    n.dx += (n.tx - n.dx) * 0.08; n.dy += (n.ty - n.dy) * 0.08; n.dz += (n.tz - n.dz) * 0.08;
+    n.alpha += (n.ta - n.alpha) * 0.08; n.hl += (n.thl - n.hl) * 0.1;
+  }
+  if(!REDUCED && !recall.on && t - lastAmbient > 320 && particles.length < 24){ lastAmbient = t; const [a, b] = pick(FLOW_EDGES); if(b.alpha > 0.5) spark(a, b, a.color, 0, 1.5, 1.6); }
+  if(recall.on) tickRecall(t);
+  projectAll();
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+  drawShell(); drawEdges(); drawNodes(t); drawLabels();
+  requestAnimationFrame(frame);
+}
+
+/* ------------------------------------------------------------ 指针：拖动旋转，滚轮/双指缩放，Shift 或双指平移 */
+let dragging = false, downX = 0, downY = 0, lastX = 0, lastY = 0, moved = 0, panMode = false;
+const pointers = new Map(); let pinchD = 0, pinchMid = null;
+const tip = document.getElementById('tip');
+function pickAt(mx, my){
+  let best = -1, bd = Infinity;
+  for(let i = 0; i < N; i++){
+    const n = nodes[i]; if(n.alpha < 0.3) continue;
+    const r = Math.max(5, n.size * SS[i] * 1.5) + 4, dx = SX[i] - mx, dy = SY[i] - my, d = dx * dx + dy * dy;
+    if(d > r * r) continue;
+    const score = d * (n.type === 'neuron' ? 3 : n.type === 'mem' ? 1.4 : 1) + SZ[i] * 0.02;
+    if(score < bd){ bd = score; best = i; }
+  }
+  return best;
+}
+function local(ev){ const r = canvas.getBoundingClientRect(); return [ev.clientX - r.left, ev.clientY - r.top]; }
+canvas.addEventListener('pointerdown', ev => {
+  canvas.setPointerCapture(ev.pointerId); pointers.set(ev.pointerId, local(ev));
+  if(pointers.size === 2){ const [p, q] = [...pointers.values()]; pinchD = Math.hypot(p[0]-q[0], p[1]-q[1]); pinchMid = [(p[0]+q[0])/2, (p[1]+q[1])/2]; }
+  [downX, downY] = local(ev); lastX = downX; lastY = downY; moved = 0; dragging = true; panMode = ev.shiftKey || ev.button === 1 || ev.button === 2;
+  canvas.classList.add('grabbing'); tip.hidden = true;
+});
+canvas.addEventListener('pointermove', ev => {
+  const [x, y] = local(ev);
+  if(pointers.has(ev.pointerId)) pointers.set(ev.pointerId, [x, y]);
+  if(dragging && pointers.size === 2){
+    const [p, q] = [...pointers.values()], d = Math.hypot(p[0]-q[0], p[1]-q[1]), mid = [(p[0]+q[0])/2, (p[1]+q[1])/2];
+    if(pinchD > 0) zoomAt(mid[0], mid[1], d / pinchD);
+    panX += mid[0] - pinchMid[0]; panY += mid[1] - pinchMid[1]; pinchD = d; pinchMid = mid; moved += 10; return;
+  }
+  if(dragging){
+    const dx = x - lastX, dy = y - lastY; moved += Math.abs(dx) + Math.abs(dy); lastX = x; lastY = y;
+    if(panMode){ panX += dx; panY += dy; } else { yaw += dx * 0.005; pitch = clamp(pitch + dy * 0.004, -0.95, 0.95); }
+    return;
+  }
+  const idx = pickAt(x, y); hoverIdx = idx;
+  canvas.classList.toggle('pointing', idx >= 0);
+  if(idx < 0){ tip.hidden = true; return; }
+  const n = nodes[idx];
+  tip.innerHTML = tipHTML(n); tip.hidden = false;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = clamp(x + 14, 8, W - tw - 8) + 'px'; tip.style.top = clamp(y + 14, 8, H - th - 8) + 'px';
+});
+function endPointer(ev){
+  const wasDrag = dragging;
+  pointers.delete(ev.pointerId);
+  if(pointers.size > 0){ const [p] = [...pointers.values()]; lastX = p[0]; lastY = p[1]; pinchD = 0; return; }
+  dragging = false; canvas.classList.remove('grabbing'); pinchD = 0;
+  if(wasDrag && moved < 5 && ev.type === 'pointerup'){
+    const [x, y] = local(ev), idx = pickAt(x, y);
+    if(idx >= 0) select(nodes[idx]); else { clearSelection(); }
+  }
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('pointerleave', () => { if(!dragging){ hoverIdx = -1; tip.hidden = true; } });
+canvas.addEventListener('contextmenu', ev => ev.preventDefault());
+function zoomAt(mx, my, k){
+  const nz = clamp(zoom * k, 0.5, 4); k = nz / zoom; zoom = nz;
+  panX = (mx - view.cx) - ((mx - view.cx) - panX) * k; panY = (my - view.cy) - ((my - view.cy) - panY) * k;
+}
+canvas.addEventListener('wheel', ev => { ev.preventDefault(); const [x, y] = local(ev); zoomAt(x, y, Math.exp(-ev.deltaY * 0.0012)); }, {passive:false});
+window.addEventListener('keydown', ev => { if(ev.key === 'Escape') clearSelection(); });
+
+function tipHTML(n){
+  const r = REG[n.region];
+  if(n.type === 'neuron') return `${esc(r.name)}<small>点一下看这个脑区</small>`;
+  if(n.type === 'hub') return `${esc(r.name)}<small>脑区中心 · ${r.fns.length || ''}${r.fns.length ? ' 个功能' : '记忆格点'}</small>`;
+  if(n.type === 'fn') return `${esc(n.name)}<small>${esc(r.name)}</small>`;
+  if(n.type === 'kind') return `${esc(n.name)}<small>${esc(KINDS[n.kind].desc)}</small>`;
+  if(n.type === 'ent') return `${esc(n.name)}<small>实体 · ${ETYPE[n.ent.type]} · ${n.ent.mems.length} 条记忆</small>`;
+  if(n.type === 'mem'){ const st = memState(n.mem, day); return `${esc(short(n.mem.text, 40))}<small>${KINDS[n.mem.kind].name} · ${STATUS[st.status]} · 重要性 ${st.imp.toFixed(2)}</small>`; }
+  return esc(n.name || '');
+}
+const ETYPE = {person:'人物',topic:'话题',place:'地方',thing:'东西',skill:'技能'};
+const STATUS = {active:'活跃',archived:'已归档',purged:'已删除'};
+
+/* ------------------------------------------------------------ 面板 */
+const tabs = document.querySelectorAll('.tabs button');
+function showTab(name){ for(const b of tabs){ const on = b.dataset.tab === name; b.setAttribute('aria-selected', on); document.getElementById('tab-' + b.dataset.tab).hidden = !on; } }
+tabs.forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+const detail = document.getElementById('tab-detail');
+
+function select(n){
+  if(n.type === 'neuron' || n.type === 'hub'){ focusRegion = n.region; selected = REG[n.region].hub; }
+  else { focusRegion = null; selected = n; }
+  setFocus(); syncLegend(); renderDetail(); showTab('detail');
+}
+function clearSelection(){ selected = null; focusRegion = null; setFocus(); syncLegend(); renderDetail(); }
+
+function flowsHTML(id){
+  const out = FLOWS.filter(f => f[0] === id), inn = FLOWS.filter(f => f[1] === id);
+  const chip = (rid, txt, arrow) => `<button class="chip" data-region="${rid}" style="--c:${REG[rid].color}"><i></i>${arrow} ${esc(REG[rid].name)} · ${esc(txt)}</button>`;
+  let h = '';
+  if(inn.length) h += `<h3>流进来</h3><div class="chips">${inn.map(f => chip(f[0], f[3], '←')).join('')}</div>`;
+  if(out.length) h += `<h3>流出去</h3><div class="chips">${out.map(f => chip(f[1], f[3], '→')).join('')}</div>`;
+  return h;
+}
+function kvHTML(params){ return params && params.length ? `<dl class="kv">${params.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>` : ''; }
+function weightBar(){
+  const ks = ['kw','sem','imp','rec','graph'];
+  return `<div class="wbar" role="img" aria-label="检索权重：关键词 0.46，语义 0.18，重要性 0.14，新鲜度 0.11，图谱 0.11">${ks.map(k => `<span style="width:${CH[k].w*100}%;background:${CH[k].color}">${CH[k].w.toFixed(2)}</span>`).join('')}</div>
+  <div class="wkey">${ks.map(k => `<span style="--c:${CH[k].color}"><i></i>${CH[k].name} × ${CH[k].w.toFixed(2)}</span>`).join('')}</div>`;
+}
+function renderDetail(){
+  const n = selected; let h = '';
+  if(!n){
+    h = `<div class="eyebrow"><i style="--c:var(--gold)"></i>总览</div>
+    <h2>这颗脑子怎么记事</h2>
+    <p class="desc">每 12 条消息，海马体写成一句摘要，存进长期记忆库；摘要里的人和事连成神经图谱。每轮对话前，大脑中枢按五路打分挑出最相关的几条，作为注入块追加在人格后面。代谢系统每天衰减、归档、合并、清理。</p>
+    <h3>检索公式</h3>${weightBar()}
+    <h3>三条原则</h3>
+    <ol class="rules"><li>先有遗忘，再谈记住，不然越存越吵</li><li>人格和记忆解耦：换人格不丢记忆，换记忆不动人格</li><li>每个增强都能一键关掉，关掉后她还是原来的她</li></ol>
+    <h3>这张图里有什么</h3>
+    <ul class="list">
+      <li><button data-region="ltm" style="--c:${REG.ltm.color}"><b>长期记忆库</b> · ${MEMS.length} 条示例记忆，按事件 / 事实 / 反思 / 技能 / 道理分区</button></li>
+      <li><button data-region="graph" style="--c:${REG.graph.color}"><b>神经图谱</b> · ${ENT.size} 个实体，${RELS.length} 条关系</button></li>
+      <li><button data-region="core" style="--c:${REG.core.color}"><b>大脑中枢</b> · 五路检索的每个参数</button></li>
+    </ul>
+    <p class="hint">拖动旋转，滚轮或双指缩放，Shift 拖动平移。点节点看详情，点左边的脑区名字只看这一区。紫色细线是记忆挂到实体上，扇形线是脑区之间的数据流，红色虚线是冲突的两条事实。</p>`;
+  } else if(n.type === 'hub'){
+    const r = REG[n.region];
+    h = `<div class="eyebrow"><i style="--c:${r.color}"></i>脑区</div><h2>${esc(r.name)}</h2><p class="desc">${esc(r.desc)}</p>`;
+    if(r.table) h += `<h3>memories 表字段</h3><p class="src">${esc(r.table)}</p>`;
+    if(r.id === 'ltm'){
+      h += `<h3>五种记忆</h3><ul class="list">${KIND_ORDER.map(k => { const kn = REG.ltm.nodes.find(x => x.kind === k); const cnt = MEMS.filter(m => m.kind === k).length; return `<li><button data-node="${kn.i}" style="--c:${KINDS[k].color}"><b>${KINDS[k].name} ${KINDS[k].en}</b> · ${cnt} 条 · ${esc(KINDS[k].desc)}</button></li>`; }).join('')}</ul>`;
+    }
+    if(r.fns.length) h += `<h3>功能</h3><ul class="list">${r.nodes.filter(x => x.type === 'fn').map(x => `<li><button data-node="${x.i}" style="--c:${r.color}"><b>${esc(x.name)}</b></button></li>`).join('')}</ul>`;
+    if(r.id === 'graph'){ const top = [...ENT.values()].sort((a, b) => b.mems.length - a.mems.length).slice(0, 12); h += `<h3>提到最多的实体</h3><div class="chips">${top.map(e => `<button class="chip" data-node="${e.node.i}" style="--c:${e.node.color}"><i></i>${esc(e.name)} · ${e.mems.length}</button>`).join('')}</div>`; }
+    h += flowsHTML(r.id);
+  } else if(n.type === 'fn'){
+    const r = REG[n.region], f = n.fn;
+    h = `<div class="eyebrow"><i style="--c:${r.color}"></i>${esc(r.name)}</div><h2>${esc(f.name)}</h2><p class="desc">${esc(f.desc)}</p>${kvHTML(f.params)}${f.src ? `<p class="src">${esc(f.src)}</p>` : ''}`;
+    if(r.id === 'core' && /×/.test(f.name)) h += `<h3>在总分里的份量</h3>${weightBar()}`;
+    h += `<p class="hint"><button class="chip" data-region="${r.id}" style="--c:${r.color}"><i></i>看整个${esc(r.name)}</button></p>`;
+  } else if(n.type === 'kind'){
+    const k = KINDS[n.kind], list = MEMS.filter(m => m.kind === n.kind).sort((a, b) => a.daysAgo - b.daysAgo);
+    h = `<div class="eyebrow"><i style="--c:${k.color}"></i>长期记忆库</div><h2>${k.name} ${k.en}</h2><p class="desc">${esc(k.desc)}</p><div class="quote" style="--c:${k.color}">${esc(k.ex)}</div>
+    <h3>最近的 ${Math.min(8, list.length)} 条示例</h3><ul class="list">${list.slice(0, 8).map(m => `<li><button data-node="${m.node.i}" style="--c:${k.color}"><b>${stamp(m)}</b> ${esc(m.text)}</button></li>`).join('')}</ul>`;
+  } else if(n.type === 'mem'){
+    const m = n.mem, k = KINDS[m.kind], st = memState(m, day);
+    const conflict = CONFLICTS.find(c => c[0] === m || c[1] === m);
+    h = `<div class="eyebrow"><i style="--c:${k.color}"></i>${k.name} ${k.en} · 示例记忆</div><h2>${esc(m.text)}</h2>
+    <div class="chips" style="margin-bottom:12px"><span class="tag">${esc(m.source)}</span><span class="tag">visibility=${m.vis}</span><span class="tag">${stamp(m)} 写入</span></div>
+    <dl class="kv"><div><dt>现在的重要性</dt><dd>${st.imp.toFixed(3)}</dd></div><div><dt>写入时</dt><dd>${m.i0.toFixed(2)}</dd></div>
+    <div><dt>新鲜度</dt><dd>${st.rec.toFixed(3)}</dd></div><div><dt>情绪 valence</dt><dd>${m.valence.toFixed(2)}</dd></div>
+    <div><dt>存在了</dt><dd>${st.age} 天</dd></div><div><dt>状态</dt><dd>${STATUS[st.status]}${m.frequent ? ' · 常用' : ''}</dd></div></dl>
+    <p class="hint" style="margin-top:0">${m.frequent ? '常用记忆：30 天内被想起、访问满 10 次，衰减减半，而且一直在保护期里，不会被归档。' : `按每天 × 0.99 衰减，存在第 ${st.archAge} 天会被归档，再过 180 天删除。`}</p>`;
+    if(conflict){ const other = conflict[0] === m ? conflict[1] : conflict[0]; h += `<p class="warn">和「${esc(other.text)}」冲突：同一个实体，bigram 相似度 ${overlapSim(m.text, other.text).toFixed(2)}（≥ 0.45），命中反义词「${conflict[2]}」。</p>`; }
+    h += `<h3>挂在这些实体上</h3><div class="chips">${m.ents.map(nm => { const e = ENT.get(nm); return `<button class="chip" data-node="${e.node.i}" style="--c:${e.node.color}"><i></i>${esc(nm)}</button>`; }).join('')}</div>`;
+  } else if(n.type === 'ent'){
+    const e = n.ent;
+    h = `<div class="eyebrow"><i style="--c:${n.color}"></i>神经图谱 · ${ETYPE[e.type]}</div><h2>${esc(e.name)}</h2>
+    <dl class="kv"><div><dt>关联记忆</dt><dd>${e.mems.length} 条</dd></div><div><dt>关系边</dt><dd>${e.rels.length} 条</dd></div></dl>`;
+    if(e.rels.length) h += `<h3>关系</h3><div class="chips">${e.rels.map(x => `<button class="chip" data-node="${x.other.node.i}" style="--c:${x.other.node.color}"><i></i>${x.dir === 'out' ? esc(e.name) + ' ' + esc(x.rel) + ' ' + esc(x.other.name) : esc(x.other.name) + ' ' + esc(x.rel) + ' ' + esc(e.name)}</button>`).join('')}</div>`;
+    h += `<h3>最近的关联记忆</h3><ul class="list">${e.mems.slice().sort((a, b) => a.daysAgo - b.daysAgo).slice(0, 8).map(m => `<li><button data-node="${m.node.i}" style="--c:${KINDS[m.kind].color}"><b>${KINDS[m.kind].name}</b> ${esc(m.text)}</button></li>`).join('')}</ul>
+    <p class="hint">检索时，如果种子记忆挂在这个实体上，其它挂在它上面的记忆每共享 1 个实体，图谱分 +1/3。</p>`;
+  }
+  detail.innerHTML = h; detail.scrollTop = 0;
+}
+document.getElementById('panel').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-node],[data-region],[data-hit]'); if(!b) return;
+  if(b.dataset.node) select(nodes[+b.dataset.node]);
+  else if(b.dataset.region) select(REG[b.dataset.region].hub);
+  else if(b.dataset.hit){ const n = MEM_NODE.get(b.dataset.hit); selected = n; focusRegion = null; setFocus(); syncLegend(); }
+});
+
+/* ------------------------------------------------------------ 图例 */
+const legend = document.getElementById('legend');
+legend.innerHTML = REGIONS.map(r => `<button data-r="${r.id}" aria-pressed="false" style="--c:${r.color}"><i></i>${esc(r.name)}<small>${r.id === 'ltm' ? MEMS.length : r.id === 'graph' ? ENT.size : r.fns.length}</small></button>`).join('');
+legend.addEventListener('click', ev => { const b = ev.target.closest('button'); if(!b) return; if(focusRegion === b.dataset.r) clearSelection(); else select(REG[b.dataset.r].hub); });
+function syncLegend(){ for(const b of legend.querySelectorAll('button')) b.setAttribute('aria-pressed', focusRegion === b.dataset.r); }
+
+/* ------------------------------------------------------------ 检索演示：按 engine.recall 的公式算 */
+const INTENT = {fact:['规则','喜欢','讨厌','习惯','叫什么','生日','不能','永远','是不是','会不会'], episode:['那天','上次','当时','记得','之前','昨天','今天','说好','答应','后来']};
+const SAMPLES = [
+  ['上次说好的那家火锅什么时候去','p-aqing'],
+  ['小满是不是不吃香菜','p-aqing'],
+  ['那天下雨你说了什么','p-xiaoman'],
+  ['采购表怎么核对来着','g-moyu'],
+];
+const sessSel = document.getElementById('sess'), qIn = document.getElementById('q');
+sessSel.innerHTML = SESS.map(s => `<option value="${s.id}">${s.name}（${s.type === 'private' ? '私聊 · 3 条 · ≥ 0.30' : '群聊 · 1 条 · ≥ 0.45'}）</option>`).join('');
+document.getElementById('samples').innerHTML = SAMPLES.map(([q, s], i) => `<button class="chip" data-sample="${i}" style="--c:${SESS_BY[s].type === 'group' ? '#8be36f' : '#ff9bd0'}"><i></i>${esc(q)}</button>`).join('');
+document.getElementById('samples').addEventListener('click', ev => { const b = ev.target.closest('[data-sample]'); if(!b) return; const [q, s] = SAMPLES[+b.dataset.sample]; qIn.value = q; sessSel.value = s; startRecall(); });
+const STEPS = ['拼查询：当前这句 + 会话里最近两句','关键词：bigram 在 FTS5 里 OR 匹配，取前 60','语义：全部活跃向量逐条算余弦','图谱：种子记忆的实体向外 1 跳','打分：五路加权 → 意图重排 → 去重 → 取前 k','过门槛，写成【记忆片段】注入块'];
+const stepsEl = document.getElementById('steps'), resultsEl = document.getElementById('results'), runBtn = document.getElementById('run');
+stepsEl.innerHTML = STEPS.map(s => `<li>${esc(s)}</li>`).join('');
+runBtn.addEventListener('click', startRecall);
+qIn.addEventListener('keydown', ev => { if(ev.key === 'Enter') startRecall(); });
+
+function detect(q){
+  const topics = new Set(), persons = new Set();
+  for(const tk of TOPIC_KEYS) if(TOPICS[tk].w.some(w => q.includes(w))) topics.add(tk);
+  for(const p of PEOPLE) if(q.includes(p)) persons.add(p);
+  return {topics, persons};
+}
+function computeRecall(query, sess){
+  const isGroup = sess.type === 'group', k = isGroup ? 1 : 3, minScore = isGroup ? 0.45 : 0.3;
+  const allow = isGroup ? new Set(['public','group']) : new Set(['public','private']);
+  const states = new Map(MEMS.map(m => [m.id, memState(m, day)]));
+  // 1) 关键词：FTS 里还留着归档的（只有彻底删除才移出索引），所以先在非删除的里搜
+  const grams = [...new Set(bigrams(query))];
+  const fts = MEMS.filter(m => states.get(m.id).status !== 'purged');
+  const Nd = fts.length, avgdl = fts.reduce((s, m) => s + m.dl, 0) / Math.max(1, Nd);
+  const df = new Map(grams.map(g => [g, fts.filter(m => m.tf.has(g)).length]));
+  let kw = [];
+  for(const m of fts){
+    let s = 0;
+    for(const g of grams){ const tf = m.tf.get(g) || 0; if(!tf) continue; const d = df.get(g); const idf = Math.max(1e-6, Math.log((Nd - d + 0.5) / (d + 0.5))); s += idf * tf * 2.2 / (tf + 1.2 * (0.25 + 0.75 * m.dl / avgdl)); }
+    if(s > 0) kw.push([m, s]);
+  }
+  kw.sort((a, b) => b[1] - a[1]); kw = kw.slice(0, 60);
+  const kwRank = new Map(); { let prev = null, rank = -1; kw.forEach(([m, s], i) => { const key = s.toFixed(6); if(key !== prev){ rank = i; prev = key; } kwRank.set(m.id, rank); }); }
+  const kwSize = Math.max(1, kwRank.size - 1);
+  // 2) 语义：模拟余弦（话题、人物重合度 + 固定噪声）；真实系统里是 bge-m3 向量
+  const qf = detect(query), qh = hashStr(query);
+  const sem = new Map();
+  for(const m of MEMS){
+    if(states.get(m.id).status !== 'active') continue;
+    let s = 0.2;
+    if(m.topic && qf.topics.has(m.topic)) s += 0.36;
+    if(m.persons.some(p => qf.persons.has(p))) s += 0.14;
+    s += ((hashStr(m.id + ':' + qh) % 1000) / 1000 - 0.5) * 0.12;
+    sem.set(m.id, clamp(s, 0, 0.95));
+  }
+  // 3) 图谱：关键词前 5 + 语义前 5 当种子
+  const semTop = [...sem.entries()].sort((a, b) => b[1] - a[1]);
+  const seedIds = [...kw.slice(0, 5).map(([m]) => m.id), ...semTop.slice(0, 5).map(([id]) => id)];
+  const seedEnts = new Set(); for(const id of seedIds){ const m = MEMS[+id.slice(1)]; for(const e of m.ents) seedEnts.add(e); }
+  // 4) 打分
+  const counts = {fact:0, episode:0}; for(const kind in INTENT) counts[kind] = INTENT[kind].filter(h => query.includes(h)).length;
+  const intentKind = counts.fact > counts.episode ? 'fact' : counts.episode > counts.fact ? 'episode' : (counts.fact ? 'fact' : '');
+  let rows = [], hidden = 0;
+  const bySess = new Map();
+  for(const m of MEMS){
+    const st = states.get(m.id); if(st.status !== 'active') continue;
+    if(!allow.has(m.vis)){ hidden++; continue; }
+    const sSem = Math.max(0, sem.get(m.id) || 0), rank = kwRank.get(m.id), sKw = rank === undefined ? 0 : 1 - rank / kwSize;
+    const shared = m.ents.filter(e => seedEnts.has(e)).length, sGraph = Math.min(1, shared / 3);
+    const c = {kw:0.46*sKw, sem:0.18*sSem, imp:0.14*st.imp, rec:0.11*st.rec, graph:0.11*sGraph, intent:0};
+    let score = c.kw + c.sem + c.imp + c.rec + c.graph;
+    if(intentKind && m.kind === intentKind){ c.intent = 0.05; score += 0.05; }
+    rows.push({m, score, c, raw:{sKw, sSem, sGraph, imp:st.imp, rec:st.rec}});
+    const key = m.session ? SESS_BY[m.session].name : m.source; bySess.set(key, (bySess.get(key) || 0) + 1);
+  }
+  rows.sort((a, b) => b.score - a.score);
+  const picked = [];
+  for(const r of rows){ if(picked.some(p => overlapSim(r.m.text, p.m.text) >= 0.82)) continue; picked.push(r); if(picked.length >= k) break; }
+  picked.forEach(r => r.below = r.score < minScore);
+  return {query, sess, k, minScore, hits:picked, kw, semTop, seedIds, seedEnts:[...seedEnts], candidates:rows.length, hidden, intentKind, bySess};
+}
+
+const recall = {on:false, t0:0, phase:-1, res:null, hits:null};
+function startRecall(){
+  const q = qIn.value.trim(); if(!q){ qIn.focus(); return; }
+  const res = computeRecall(q, SESS_BY[sessSel.value]);
+  for(const n of nodes){ n.thl = 0; }
+  particles.length = 0;
+  recall.on = true; recall.t0 = performance.now(); recall.phase = -1; recall.res = res; recall.hits = null;
+  selected = null; focusRegion = null; setFocus(); syncLegend();
+  showTab('recall'); runBtn.disabled = true; runBtn.textContent = '检索中…';
+  resultsEl.innerHTML = '';
+  [...stepsEl.children].forEach(li => li.className = '');
+}
+function setStep(i){ [...stepsEl.children].forEach((li, j) => li.className = j < i ? 'done' : j === i ? 'on' : ''); }
+function tickRecall(t){
+  const s = (t - recall.t0) / 1000, ph = s < 0.8 ? 0 : s < 1.6 ? 1 : s < 2.6 ? 2 : s < 3.5 ? 3 : s < 4.4 ? 4 : s < 5.4 ? 5 : 6;
+  if(ph !== recall.phase){ recall.phase = ph; onPhase(ph); }
+  if(s > 6.6){ recall.on = false; setStep(STEPS.length); runBtn.disabled = false; runBtn.textContent = '再检索一次'; }
+}
+function onPhase(ph){
+  const res = recall.res, core = REG.core.hub;
+  if(ph === 0){ setStep(0); spark(REG.text.hub, REG.working.hub, REG.text.color, 0, 0.8, 3); REG.text.hub.thl = 0.8; REG.text.hub.hc = REG.text.color; }
+  if(ph === 1){ REG.text.hub.thl = 0; spark(REG.working.hub, core, REG.working.color, 0, 0.8, 3); }
+  if(ph === 2){ setStep(1); core.thl = 1; core.hc = '#ffe57a';
+    res.kw.slice(0, 40).forEach(([m], i) => { spark(core, m.node, CH.kw.color, i * 0.012, 0.6, 1.8); m.node.thl = 0.5; m.node.hc = CH.kw.color; }); }
+  if(ph === 3){ setStep(2);
+    for(const [id, v] of res.semTop){ const n = MEM_NODE.get(id); if(v > 0.42){ n.thl = Math.max(n.thl, (v - 0.35) * 1.3); n.hc = n.thl > 0.5 && n.hc === CH.kw.color ? CH.kw.color : CH.sem.color; } }
+    res.semTop.slice(0, 16).forEach(([id], i) => spark(core, MEM_NODE.get(id), CH.sem.color, i * 0.02, 0.6, 1.8));
+    spark(REG.emotion.hub, core, REG.emotion.color, 0, 0.7, 2.4); }
+  if(ph === 4){ setStep(3);
+    res.seedEnts.slice(0, 14).forEach((nm, i) => { const e = ENT.get(nm); spark(core, e.node, CH.graph.color, i * 0.03, 0.55, 2); e.node.thl = 0.9; e.node.hc = CH.graph.color; });
+    res.seedEnts.slice(0, 6).forEach((nm, i) => { const e = ENT.get(nm); e.mems.slice(0, 3).forEach((m, j) => spark(e.node, m.node, CH.graph.color, 0.35 + i * 0.03 + j * 0.02, 0.5, 1.5)); }); }
+  if(ph === 5){ setStep(4);
+    for(const n of nodes) n.thl = 0;
+    for(const h of res.hits){ h.m.node.thl = h.below ? 0.45 : 1; h.m.node.hc = h.below ? '#9aa4d6' : '#fff3b0'; }
+    core.thl = 0.8; recall.hits = res.hits; renderHits(res); }
+  if(ph === 6){ setStep(5);
+    const ok = res.hits.filter(h => !h.below);
+    ok.forEach((h, i) => spark(h.m.node, REG.expr.hub, REG.expr.color, i * 0.12, 0.8, 2.6));
+    if(ok.length){ REG.expr.hub.thl = 1; REG.expr.hub.hc = REG.expr.color; }
+    renderInject(res); }
+}
+function sbar(h, minScore){
+  const ks = ['kw','sem','imp','rec','graph','intent'];
+  return `<span class="sbar" role="img" aria-label="总分 ${h.score.toFixed(3)}">${ks.map(k => h.c[k] > 0 ? `<span style="width:${h.c[k]*100}%;background:${CH[k].color}"></span>` : '').join('')}<i class="th" style="left:${minScore*100}%"></i></span>
+  <span class="sline">总分 ${h.score.toFixed(3)} = ${ks.filter(k => h.c[k] > 0.0005).map(k => `${CH[k].name} ${h.c[k].toFixed(3)}`).join(' + ')}</span>`;
+}
+function renderHits(res){
+  const seeds = res.seedEnts.slice(0, 8).join('、') || '无';
+  let h = `<p class="summary">候选 <b>${res.candidates}</b> 条（每条活跃记忆都算了向量）· 关键词命中 <b>${res.kw.length}</b> 条 · 被 visibility 挡掉 <b>${res.hidden}</b> 条<br>候选来自：${esc([...res.bySess.entries()].sort((a, b) => b[1] - a[1]).map(([k, v]) => k + ' ' + v).join(' · '))}<br>种子实体：${esc(seeds)}<br>意图：${res.intentKind ? (res.intentKind === 'fact' ? '问规则 / 喜好 → 事实 +0.05' : '问往事 → 事件 +0.05') : '没识别出来，不加分'}</p>`;
+  h += `<div class="wkey" style="margin-bottom:10px">${['kw','sem','imp','rec','graph','intent'].map(k => `<span style="--c:${CH[k].color}"><i></i>${CH[k].name}</span>`).join('')}</div>`;
+  if(!res.hits.length) h += `<p class="hint">没有可检索的记忆。</p>`;
+  for(const x of res.hits){
+    const m = x.m, k = KINDS[m.kind];
+    const other = m.session && m.session !== res.sess.id;
+    h += `<button class="hit${x.below ? ' below' : ''}" data-hit="${m.id}"><span class="meta"><span class="tag" style="color:${k.color};border-color:${k.color}55">${k.name}</span><span class="tag">${stamp(m)}</span><span class="tag">${esc(m.session ? SESS_BY[m.session].name : m.source)}</span>${x.below ? `<span class="tag" style="color:var(--bad)">没过 ${res.minScore.toFixed(2)}</span>` : ''}</span>
+    <span class="txt">${esc(m.text)}</span>${sbar(x, res.minScore)}
+    ${other && !x.below ? `<span class="warn">这条来自「${esc(SESS_BY[m.session].name)}」，不是当前会话。visibility 只有 public / private / group 三档，所有私聊的记忆在同一个 private 池里。</span>` : ''}</button>`;
+  }
+  resultsEl.innerHTML = h;
+}
+function renderInject(res){
+  const ok = res.hits.filter(h => !h.below);
+  let block;
+  if(ok.length){ block = ['【记忆片段】','以下是和当前话题相关的旧记忆，用来接话，别逐条复述：', ...ok.map((x, i) => `${i + 1}. [${stamp(x.m)}] ${x.m.text.slice(0, 160)}`)].join('\n'); }
+  const div = document.createElement('div');
+  div.innerHTML = ok.length ? `<h3>追加到 system_prompt 末尾</h3><pre class="inject">${esc(block)}</pre>` : `<p class="warn">没有记忆超过 ${res.minScore.toFixed(2)}，这一轮不注入：宁可不提，也不乱提旧事。</p>`;
+  resultsEl.appendChild(div);
+}
+
+/* ------------------------------------------------------------ 时间推演 */
+let day = 0, playing = false, playFrom = 0, playT0 = 0;
+const dayIn = document.getElementById('day'), dayOut = document.getElementById('dayout'), playBtn = document.getElementById('play');
+const LTM_C = REG.ltm.c;
+function applyDay(d){
+  day = d; let a = 0, b = 0, c = 0;
+  for(const m of MEMS){
+    const n = m.node, st = memState(m, d);
+    if(st.status === 'active'){ a++; n.ta = 0.3 + 0.7 * Math.sqrt(st.rec * 0.6 + 0.4); n.size = 1.5 + 4.4 * st.imp; n.statusColor = null; n.tx = n.x; n.ty = n.y; n.tz = n.z; }
+    else if(st.status === 'archived'){ b++; n.ta = 0.42; n.size = 1.5; n.statusColor = GRAY; n.tx = LTM_C[0] + (n.x - LTM_C[0]) * 1.17; n.ty = LTM_C[1] + (n.y - LTM_C[1]) * 1.17 + 16; n.tz = LTM_C[2] + (n.z - LTM_C[2]) * 1.17; }
+    else { c++; n.ta = 0; }
+  }
+  dayOut.textContent = `第 ${d} 天`;
+  document.getElementById('t-active').textContent = a;
+  document.getElementById('t-arch').textContent = b;
+  document.getElementById('t-purge').textContent = c;
+  document.getElementById('stats').textContent = `节点 ${N.toLocaleString()} · 连线 ${edges.length.toLocaleString()} · 记忆 活跃 ${a} / 归档 ${b}${c ? ' / 已删 ' + c : ''}`;
+  const f = MEMS[0], fs = memState(f, d);
+  document.getElementById('fact-note').textContent = `「${f.text}」写入时重要性 ${f.i0.toFixed(2)}，之后没人再提起：第 ${Math.max(0, fs.archAge - f.daysAgo)} 天归档，第 ${fs.archAge + 180 - f.daysAgo} 天删除。现在：${STATUS[fs.status]}。事实和事件用同一套衰减规则。`;
+  drawMarker(d);
+  if(selected && selected.type === 'mem') renderDetail();
+}
+dayIn.addEventListener('input', () => { playing = false; playBtn.textContent = '播放'; applyDay(+dayIn.value); });
+playBtn.addEventListener('click', () => {
+  playing = !playing; playBtn.textContent = playing ? '暂停' : '播放';
+  if(playing){ playFrom = day >= 240 ? 0 : day; playT0 = performance.now(); requestAnimationFrame(playStep); }
+});
+function playStep(t){
+  if(!playing) return;
+  const d = Math.min(240, Math.round(playFrom + (t - playT0) / 1000 * 30));
+  if(d !== day){ dayIn.value = d; applyDay(d); }
+  if(d >= 240){ playing = false; playBtn.textContent = '播放'; return; }
+  requestAnimationFrame(playStep);
+}
+// 小图：活跃 / 归档 / 删除随时间的数量
+const chart = document.getElementById('chart');
+const SER = []; for(let d = 0; d <= 240; d += 4){ let a = 0, b = 0, c = 0; for(const m of MEMS){ const s = memState(m, d).status; if(s === 'active') a++; else if(s === 'archived') b++; else c++; } SER.push([d, a, b, c]); }
+const CX0 = 34, CX1 = 322, CY0 = 12, CY1 = 124, YMAX = Math.ceil(MEMS.length / 100) * 100;
+const cx = d => CX0 + (CX1 - CX0) * d / 240, cy = v => CY1 - (CY1 - CY0) * v / YMAX;
+{
+  const line = (idx, color, dash) => `<polyline fill="none" stroke="${color}" stroke-width="1.8" ${dash ? 'stroke-dasharray="4 3"' : ''} points="${SER.map(p => cx(p[0]).toFixed(1) + ',' + cy(p[idx]).toFixed(1)).join(' ')}"/>`;
+  let s = '';
+  for(const v of [0, YMAX / 2, YMAX]) s += `<line x1="${CX0}" x2="${CX1}" y1="${cy(v)}" y2="${cy(v)}" stroke="rgba(150,165,255,.14)"/><text x="${CX0 - 6}" y="${cy(v) + 4}" text-anchor="end" font-size="10" fill="#8f99ca" font-family="JetBrains Mono, monospace">${v}</text>`;
+  for(const d of [0, 60, 120, 180, 240]) s += `<text x="${cx(d)}" y="${CY1 + 16}" text-anchor="middle" font-size="10" fill="#8f99ca" font-family="JetBrains Mono, monospace">${d}</text>`;
+  s += `<polygon fill="rgba(255,229,122,.08)" points="${cx(0)},${cy(0)} ${SER.map(p => cx(p[0]).toFixed(1) + ',' + cy(p[1]).toFixed(1)).join(' ')} ${cx(240)},${cy(0)}"/>`;
+  s += line(1, '#ffe57a') + line(2, '#8c90ff') + line(3, '#ff5f7e', true);
+  s += `<line id="mk" x1="${cx(0)}" x2="${cx(0)}" y1="${CY0 - 4}" y2="${CY1}" stroke="#ffffff" stroke-width="1.2" opacity=".8"/><circle id="mk-dot" cx="${cx(0)}" cy="${cy(SER[0][1])}" r="3.2" fill="#ffe57a"/>`;
+  s += `<text x="${CX0 + 4}" y="${CY0 + 2}" font-size="10" fill="#ffe57a" font-family="Noto Sans SC, sans-serif">活跃</text><text x="${CX0 + 36}" y="${CY0 + 2}" font-size="10" fill="#8c90ff" font-family="Noto Sans SC, sans-serif">归档</text><text x="${CX0 + 68}" y="${CY0 + 2}" font-size="10" fill="#ff5f7e" font-family="Noto Sans SC, sans-serif">累计删除</text>`;
+  chart.innerHTML = s;
+}
+function drawMarker(d){
+  const mk = document.getElementById('mk'), dot = document.getElementById('mk-dot'); if(!mk) return;
+  const p = SER[Math.min(SER.length - 1, Math.round(d / 4))];
+  mk.setAttribute('x1', cx(d)); mk.setAttribute('x2', cx(d)); dot.setAttribute('cx', cx(d)); dot.setAttribute('cy', cy(p[1]));
+}
+
+/* ------------------------------------------------------------ 视角按钮 */
+const rotBtn = document.getElementById('rot');
+rotBtn.setAttribute('aria-pressed', autoRotate);
+rotBtn.addEventListener('click', () => { autoRotate = !autoRotate; rotBtn.setAttribute('aria-pressed', autoRotate); });
+document.getElementById('reset').addEventListener('click', () => { yaw = -0.32; pitch = 0.1; zoom = 1; panX = 0; panY = 0; });
+
+/* ------------------------------------------------------------ 启动 */
+window.addEventListener('resize', resize);
+if(document.fonts && document.fonts.load){
+  document.fonts.load('20px "ZCOOL QingKe HuangYou"', REGIONS.map(r => r.name).join('')).catch(() => {});
+  document.fonts.load('12px "Noto Sans SC"', '人格只读外壳' + PEOPLE.join('') + KIND_ORDER.map(k => KINDS[k].name).join('')).catch(() => {});
+}
+resize(); applyDay(0); renderDetail();
+requestAnimationFrame(t => { now = t; requestAnimationFrame(frame); });
+})();
+</script>

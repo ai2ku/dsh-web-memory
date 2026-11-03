@@ -379,6 +379,45 @@ class L2:
                 f"SELECT entity_id, name FROM entities WHERE entity_id IN ({_marks(len(ids))})", ids).fetchall()
         return {r["entity_id"]: r["name"] for r in rows}
 
+    def list_graph(self, key: str, entity_limit: int = 300, summary_limit: int = 300) -> dict:
+        """记忆星图：按会话 key 列出实体、关系、摘要（图谱节点与边）。
+
+        - entities：该 key 下出现的实体（含 type/name/qq），按摘要关联计数降序；
+        - relations：该 key 下的关系（src/dst/relation），去重取前若干；
+        - summaries：该 key 下的摘要（title/summary/importance/valence/t_start/day），按时间倒序。
+        供前端星图接入真实数据用；key 为空返回空图。
+        """
+        if not key:
+            return {"entities": [], "relations": [], "summaries": []}
+        el = max(1, min(int(entity_limit or 300), 1000))
+        sl = max(1, min(int(summary_limit or 300), 1000))
+        with self.lock:
+            ents = self.conn.execute(
+                "SELECT e.entity_id, e.type, e.name, e.qq, e.created_at, "
+                "(SELECT COUNT(*) FROM summary_entities se WHERE se.entity_id=e.entity_id AND se.key=?) AS cnt "
+                "FROM entities e "
+                "WHERE e.entity_id IN (SELECT entity_id FROM summary_entities WHERE key=?) "
+                "ORDER BY cnt DESC, e.name LIMIT ?",
+                [key, key, el],
+            ).fetchall()
+            rels = self.conn.execute(
+                "SELECT src_id, dst_id, relation, COUNT(*) AS cnt FROM relations "
+                "WHERE key=? GROUP BY src_id, dst_id, relation ORDER BY cnt DESC LIMIT 300",
+                [key],
+            ).fetchall()
+            sums = self.conn.execute(
+                f"SELECT {', '.join(_SUMMARY_COLS)} FROM summaries WHERE key=? "
+                "ORDER BY t_start DESC LIMIT ?",
+                [key, sl],
+            ).fetchall()
+        return {
+            "entities": [{"id": r["entity_id"], "type": r["type"], "name": r["name"],
+                          "qq": r["qq"], "count": int(r["cnt"])} for r in ents],
+            "relations": [{"src": r["src_id"], "dst": r["dst_id"], "relation": r["relation"],
+                           "count": int(r["cnt"])} for r in rels],
+            "summaries": [_summary(r) for r in sums],
+        }
+
     def stats(self) -> dict:
         with self.lock:
             def n(sql: str) -> int:
