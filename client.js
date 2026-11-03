@@ -190,7 +190,7 @@ window.__ModuleLoader__.load({
         },
       }, label);
 
-      return h('div', { style: { padding: '24px', width: '100%', maxWidth: '100%', margin: '0 auto', boxSizing: 'border-box', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', gap: '16px' } },
+      return h('div', { style: { padding: '24px', width: '100%', maxWidth: '100%', flex: '1 1 auto', minHeight: '0', overflowY: 'auto', boxSizing: 'border-box', margin: '0 auto', fontFamily: 'inherit', display: 'flex', flexDirection: 'column', gap: '16px' } },
         h('div', { style: { display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0' } },
           h('span', { style: { fontSize: '20px', fontWeight: 600, color: 'var(--dsw-alias-label-primary, #222)' } }, '记忆与人格'),
           h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-tertiary, #999)' } }, '跨会话 / 跨设备记忆 + 人格'),
@@ -208,8 +208,34 @@ window.__ModuleLoader__.load({
             row('记忆 key', h('code', { style: { fontSize: '12px' } }, String(health.chatKey || '—'))),
             row('人格 key', h('code', { style: { fontSize: '12px' } }, String(health.personaKey || '—'))),
             row('记忆条数', String(health.memoryCount ?? '—')),
-            row('服务', health.ragOk ? '✅ memory-rag 连接正常' : (health.ragChecked ? '⚠️ memory-rag 不可达' : '…')),
+            row('记忆服务', health.ragOk ? '✅ memory-rag 连接正常' : (health.ragChecked ? '⚠️ memory-rag 不可达' : '…')),
           ) : (err ? null : h('div', { style: { color: 'var(--dsw-alias-label-tertiary, #888)' } }, '加载中…')),
+
+          // 人格状态
+          health?.persona ? h('div', { style: cardStyle },
+            h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '人格'),
+            row('当前角色', h('span', { style: { fontSize: '13px' } }, health.persona.role ? String(health.persona.role) : '—')),
+            row('出厂值', health.persona.initialized ? '✅ 已初始化' : '⚠️ 未初始化（用「人格」页重新提炼）'),
+            row('注入', health.persona.inject ? '✅ 已注入 systemPrompt' : '⚠️ 未注入'),
+            row('核心长度', String(health.persona.coreLen ?? '—') + ' 字符'),
+            health.persona.traits ? h('div', { style: { margin: '10px 0 0' } },
+              h('div', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary, #666)', marginBottom: '6px' } }, '性格概览（大五）'),
+              h('div', { style: { display: 'flex', gap: '8px', flexWrap: 'wrap' } },
+                Object.entries(health.persona.traits).map(([k, v]) => h('span', { key: k, style: { padding: '3px 10px', borderRadius: '12px', fontSize: '12px', background: 'var(--dsw-alias-bg-active, #eef4ff)', color: 'var(--dsw-alias-state-business-primary, #4f8cff)' } }, `${k} ${v}`)),
+              ),
+            ) : null,
+          ) : null,
+
+          // 记忆库概览（从容器状态）
+          health?.rag ? h('div', { style: cardStyle },
+            h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '记忆库'),
+            row('摘要', String(health.rag.summaries ?? '—')),
+            row('候选', String(health.rag.notes ?? '—')),
+            row('待处理', String(health.rag.pending ?? '—')),
+            row('失败', String(health.rag.failed ?? '—')),
+            health.rag.last_index ? row('上次索引', String(health.rag.last_index)) : null,
+          ) : null,
+
           h('div', { style: cardStyle },
             h('h4', { style: { margin: '0 0 8px', fontSize: '15px' } }, '说明'),
             h('p', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-secondary, #666)', lineHeight: '1.8', margin: '0' } },
