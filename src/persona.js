@@ -48,7 +48,7 @@ export function sumPriorCalls(usage, day, runId) {
 export function createPersona({
   stateDir, roleName, roleCard, sessions, ownerQQ, peopleStats = () => [],
   redact = (s) => s, log = () => {}, fetchImpl = fetch, now = () => Date.now(), onWeeklyReport = null,
-  onCoreChange = null, fileClient = null
+  onCoreChange = null, onRoleChange = null, fileClient = null
 }) {
   const store = createPersonaStore({ rootDir: stateDir, fileClient, relBase: 'persona' });
   // 记忆全存容器：异步预载 persona 数据到内存缓存（首轮判读前通常完成，未完成则降级）。
@@ -527,6 +527,8 @@ export function createPersona({
         S.emotion ??= newEmotion(now());
         S.meta ??= {};
         lastLive = '';
+        // 跨设备共享当前角色：切角色后通知 core 写容器 persona/current-role.json（+ 本地兜底）。
+        try { onRoleChange?.({ role }); } catch {}
       }
       const st = ensure();
       const f = parseFactory({ traits, character, manifests, prefs, beliefs });

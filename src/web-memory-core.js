@@ -238,6 +238,47 @@ export function createWebMemoryCore(opts = {}) {
     rag = null;
   }
 
+  // ── 跨设备共享当前角色 ──
+  // 角色状态以内存为权威源 + 容器持久化（persona/current-role.json），本地 current-role.json 作兜底：
+  // 新机器装完连上容器即可读到当前角色，不必手动建 state/current-role.json（解决跨设备人格默认 default/空）。
+  // 启动时异步预热 currentRole；roleName() 同步返回内存值（容器未就绪时回落本地文件）。
+  // 声明在 rag 就绪后、persona 创建前，确保 persona.start() 前的预热能安全赋值。
+  let currentRole = null;
+
+  const writeRoleStateRemote = (r, role) => {
+    const payload = JSON.stringify({ role, mode: 'active' }, null, 2) + '\n';
+    if (r) Promise.resolve(r.fileWrite('persona/current-role.json', payload)).catch(() => {});
+    try {
+      const file = path.join(root, 'state', 'current-role.json');
+      fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
+      fs.writeFileSync(file, payload, { mode: 0o600 });
+    } catch {}
+  };
+
+  const loadRoleStateRemote = async (r) => {
+    if (!r) return null;
+    try {
+      const res = await r.fileRead('persona/current-role.json');
+      if (res && res.data && res.data.found) {
+        try {
+          const parsed = JSON.parse(res.data.content);
+          if (parsed && typeof parsed.role === 'string' && parsed.role.trim()) {
+            currentRole = parsed.role.trim();
+            return currentRole;
+          }
+        } catch {}
+      }
+    } catch {}
+    // 容器还没有：把本地 current-role.json 的值迁移上去（首次部署 / 旧数据升级）
+    const local = readRoleState(root).role;
+    if (local && typeof local === 'string' && local.trim()) {
+      currentRole = local.trim();
+      writeRoleStateRemote(r, currentRole);
+      return currentRole;
+    }
+    return null;
+  };
+
   // 记忆全存容器：异步预载 people + archive + decay 到内存缓存（等 ragControl 就绪后，见下方）
 
   // ── RAG 总开关 ──
@@ -297,7 +338,7 @@ export function createWebMemoryCore(opts = {}) {
   try {
     persona = createPersona({
       stateDir: path.join(stateDir, 'persona'),
-      roleName: () => readRoleState(root).role || 'default',
+      roleName: () => (currentRole ?? readRoleState(root).role ?? 'default'),
       roleCard: (name) => {
         try { return fs.readFileSync(path.join(root, 'roles', `${path.basename(String(name))}.md`), 'utf8'); } catch { return ''; }
       },
@@ -314,6 +355,11 @@ export function createWebMemoryCore(opts = {}) {
           rag.indexText({ key: ctx.personaKey(), text }).catch(() => {});
         } catch (e) { log(`[persona] 同步 persona:${ctx.userId()} 失败：${e?.message ?? e}`); }
       },
+      // 跨设备共享当前角色：切角色后写容器 persona/current-role.json（+本地兜底），并更新内存权威值。
+      onRoleChange: ({ role }) => {
+        currentRole = role;
+        writeRoleStateRemote(rag, role);
+      },
       // 记忆全存容器：persona 数据（config/live/usage/history/reports）走容器存储
       fileClient: {
         fileRead: (...a) => (rag ? rag.fileRead(...a) : null),
@@ -324,6 +370,9 @@ export function createWebMemoryCore(opts = {}) {
       }
     });
     persona.start();
+    // 跨设备共享当前角色：启动时从容器预热 currentRole（新机器连上容器即可读到，
+    // 不必手动建 state/current-role.json）。异步，不阻塞首帧；未就绪时 roleName() 回落本地文件。
+    loadRoleStateRemote(rag).catch(() => {});
   } catch (error) {
     log(`⚠️ 人格与情绪模块未启用：${error?.message ?? error}`);
     persona = null;
@@ -401,8 +450,8 @@ function ltmDecayState(item, uid, ownerQQ) {
   } catch { return null; }
 }
 
-/** 读角色状态（current-role.json）。 */
-function readRoleState(root) {
-  const file = path.join(root, 'state', 'current-role.json');
+/** 读角色状态（current-role.json）——同步读本地文件（容器不可用时的兜底）。 */
+function readRoleState(r) {
+  const file = path.join(r, 'state', 'current-role.json');
   return readJsonSafe(file, { role: null, mode: 'active' });
 }
