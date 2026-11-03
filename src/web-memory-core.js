@@ -298,7 +298,7 @@ export function createWebMemoryCore(opts = {}) {
         try { return fs.readFileSync(path.join(root, 'roles', `${path.basename(String(name))}.md`), 'utf8'); } catch { return ''; }
       },
       sessions: hooks.getSessions ?? (() => ({})),
-      ownerQQ: () => String(readTopConfig(configFile).ownerQQ ?? ''),
+      ownerQQ: () => crossUserId(configFile),  // 主人 = 单用户 userId（默认 root），不再读旧 ownerQQ（QQ 已去除）
       peopleStats: hooks.getPeopleStats ?? (() => ltm.listPeople()),
       redact,
       log,
