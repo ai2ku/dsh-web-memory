@@ -401,7 +401,7 @@ const ageSkew = (p, max) => Math.floor(Math.pow(rnd(), p) * max);
 let REAL_DATA = null;
 async function loadRealData(){
   try {
-    const api = new URL('dsh-web-memory/graph', document.baseURI).href;
+    const api = new URL('graph', document.baseURI).href;
     const res = await fetch(api, { headers: { accept: 'application/json' } });
     if(!res.ok) return false;
     const d = await res.json();
