@@ -597,7 +597,8 @@ def main():
     host = os.environ.get("MEMORY_RAG_HOST") or srv.get("host", "127.0.0.1")
     # 自定义日志：抑制 uvicorn.error 的 WARNING（如外部探测打到端口导致的
     # 「Invalid HTTP request received」噪音），只保留 ERROR；access 日志照旧。
-    import logging
+    # 注意：uvicorn.run 的 log_level 会覆盖 log_config 里的 level，所以这里不传 log_level，
+    # 让 log_config 全权控制（uvicorn.error=ERROR，uvicorn.access 保持默认）。
     import copy
     log_cfg = None
     try:
@@ -607,7 +608,7 @@ def main():
             log_cfg["loggers"]["uvicorn"]["level"] = "ERROR"
     except Exception:
         log_cfg = None
-    uvicorn.run(app, host=str(host), port=int(srv.get("port", 8093)), log_level="warning", log_config=log_cfg)
+    uvicorn.run(app, host=str(host), port=int(srv.get("port", 8093)), log_config=log_cfg)
 
 
 if __name__ == "__main__":
