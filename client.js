@@ -166,6 +166,7 @@ window.__ModuleLoader__.load({
       const [mem, setMem] = React.useState(null);
       const [memErr, setMemErr] = React.useState('');
       const [memLimit, setMemLimit] = React.useState(30);
+      const [expanded, setExpanded] = React.useState({}); // 记忆条目展开状态（key -> bool）
       React.useEffect(() => {
         let alive = true;
         fetch(apiUrl('memory?limit=' + memLimit), { headers: { accept: 'application/json' } })
@@ -432,15 +433,25 @@ window.__ModuleLoader__.load({
 
             // 存档消息（记忆条目完整列表）
             h('h5', { style: { margin: '16px 0 8px', fontSize: '13px', color: 'var(--dsw-alias-label-secondary, #666)' } }, '存档消息（' + (mem.archive?.length ?? 0) + ' 条）'),
-            (mem.archive && mem.archive.length) ? mem.archive.map((a, i) =>
-              h('div', { key: (a.t || '') + '_' + i, style: { padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: '13px' } },
+            (mem.archive && mem.archive.length) ? [...mem.archive].reverse().map((a, i) => {
+              const k = (a.t || '') + '_' + i;
+              const full = String(a.text || '');
+              const isExp = !!expanded[k];
+              const isLong = full.length > 200;
+              return h('div', { key: k, style: { padding: '8px 0', borderBottom: '1px solid #f0f0f0', fontSize: '13px' } },
                 h('div', { style: { display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '2px' } },
                   h('span', { style: { fontSize: '11px', color: 'var(--dsw-alias-label-tertiary, #999)', flexShrink: 0 } }, String(a.t || '').slice(0, 16).replace('T', ' ')),
                   h('span', { style: { fontSize: '11px', padding: '1px 6px', borderRadius: '8px', background: a.dir === 'user' ? 'var(--dsw-alias-state-business-tertiary, #eef4ff)' : 'var(--dsw-alias-bg-active, #f0f2f5)', color: 'var(--dsw-alias-label-secondary, #666)' } }, a.dir === 'user' ? '我' : (a.name || 'AI')),
                 ),
-                h('div', { style: { color: 'var(--dsw-alias-label-primary, #333)', lineHeight: '1.6', wordBreak: 'break-word' } }, String(a.text || '').slice(0, 200)),
-              ),
-            ) : h('p', { style: { color: 'var(--dsw-alias-label-tertiary, #888)', fontSize: '13px' } }, '暂无存档消息。'),
+                h('div', { style: { color: 'var(--dsw-alias-label-primary, #333)', lineHeight: '1.6', wordBreak: 'break-word', whiteSpace: 'pre-wrap' } },
+                  isExp ? full : full.slice(0, 200),
+                ),
+                isLong ? h('button', {
+                  onClick: () => setExpanded((s) => ({ ...s, [k]: !isExp })),
+                  style: { marginTop: '4px', padding: '2px 8px', borderRadius: '6px', border: 'none', background: 'transparent', color: 'var(--dsw-alias-state-business-primary, #4f8cff)', cursor: 'pointer', fontSize: '12px' },
+                }, isExp ? '收起' : '展开全文 (' + full.length + ' 字)') : null,
+              );
+            }) : h('p', { style: { color: 'var(--dsw-alias-label-tertiary, #888)', fontSize: '13px' } }, '暂无存档消息。'),
             h('button', {
               onClick: () => setMemLimit((n) => n + 30),
               disabled: memLimit >= 500,
