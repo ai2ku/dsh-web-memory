@@ -181,6 +181,15 @@ window.__ModuleLoader__.load({
         h('span', { style: { minWidth: '110px', color: 'var(--dsw-alias-label-tertiary, #888)', flexShrink: 0 } }, label),
         h('span', { style: { flex: 1, minWidth: 0 } }, val),
       );
+      // 时间戳 → 本地日期时间（总览「上次索引」用）
+      const fmtTime = (ts) => {
+        try {
+          const d = new Date(Number(ts));
+          if (isNaN(d.getTime())) return String(ts);
+          const p = (n) => String(n).padStart(2, '0');
+          return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+        } catch { return String(ts); }
+      };
       const tabBtn = (id, label) => h('button', {
         onClick: () => setTab(id),
         style: {
@@ -226,14 +235,16 @@ window.__ModuleLoader__.load({
             ) : null,
           ) : null,
 
-          // 记忆库概览（从容器状态）
+          // 记忆库概览（从容器状态：distill 是提炼层，last_index 是最近索引）
           health?.rag ? h('div', { style: cardStyle },
             h('h4', { style: { margin: '0 0 10px', fontSize: '15px' } }, '记忆库'),
-            row('摘要', String(health.rag.summaries ?? '—')),
-            row('候选', String(health.rag.notes ?? '—')),
-            row('待处理', String(health.rag.pending ?? '—')),
-            row('失败', String(health.rag.failed ?? '—')),
-            health.rag.last_index ? row('上次索引', String(health.rag.last_index)) : null,
+            row('摘要', String(health.rag.distill?.summaries ?? '—')),
+            row('候选', String(health.rag.distill?.notes?.total ?? health.rag.distill?.today?.notes ?? '—')),
+            row('待处理', String(health.rag.distill?.pending ?? health.rag.distill?.notes?.queued ?? '—')),
+            row('失败', String(health.rag.distill?.failed ?? '—')),
+            row('存储块', String(health.rag.store?.chunks ?? '—')),
+            row('向量', String(health.rag.store?.vectors ?? '—')),
+            health.rag.last_index?.at ? row('上次索引', h('span', {}, fmtTime(health.rag.last_index.at) + '（' + String(health.rag.last_index.chunks ?? 0) + ' 块）')) : null,
           ) : null,
 
           h('div', { style: cardStyle },
