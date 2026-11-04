@@ -575,13 +575,23 @@ def file_write(req: FileWriteReq):
     f = _file_root() / rel
     f.parent.mkdir(parents=True, exist_ok=True)
     os.chmod(f.parent, 0o700)
-    tmp = f.with_suffix(f.suffix + ".tmp")
+    # CONCURRENCY_PATCH：tmp 名带 pid+时间戳，并发写不会互相截断同一个 tmp。
+    # 之前固定 `f.with_suffix(f.suffix + ".tmp")`——两条并发 /file/write 会写同一个 tmp，
+    # 后写的截断先写的，先写的 replace 把半截文件换成正主，people.json 就写坏了。
+    tmp = f.with_suffix(f.suffix + f".tmp-{os.getpid()}-{int(time.time() * 1000)}")
     try:
         tmp.write_text(req.content, encoding="utf-8")
         os.chmod(tmp, 0o600)
         tmp.replace(f)
     except Exception as e:
         raise HTTPException(500, f"写失败：{e}") from None
+    finally:
+        # 替身用完即弃：replace 后 tmp 已不在；失败时也清掉，不留半截垃圾。
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except Exception:
+            pass
     return {"ok": True}
 
 

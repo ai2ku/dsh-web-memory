@@ -423,12 +423,20 @@ export function createLongMemory({ stateDir, redact = (s) => s, log = () => {}, 
   }
 
   let saveTimer = null;
+  // CONCURRENCY_PATCH：容器写走串行队列——fire-and-forget 并发写会互相覆盖/截断，
+  // 导致 people.json 写坏。这里把每次 saveNow 排队，前一次写完（或失败）再写下一次。
+  let saveChain = Promise.resolve();
+  function enqueueSave(fn) {
+    saveChain = saveChain.then(fn).catch((e) => { try { log(`[ltm] 账本写容器失败：${e?.message ?? e}`); } catch {} });
+    return saveChain;
+  }
   function saveNow() {
     clearTimeout(saveTimer);
     saveTimer = null;
     const payload = JSON.stringify({ version: 1, people }, null, 2) + '\n';
     if (fileClient) {
-      Promise.resolve(fileClient.fileWrite('long-memory/people.json', payload)).catch(() => {});
+      // 每次写的是"此刻"的快照；排队后写的是排队那一刻的 people，顺序即正确。
+      enqueueSave(() => fileClient.fileWrite('long-memory/people.json', payload));
     } else {
       writeFileAtomic(PEOPLE_FILE, payload);
     }
