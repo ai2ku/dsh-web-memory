@@ -337,8 +337,8 @@ const clear = (node) => { while(node.firstChild) node.removeChild(node.firstChil
 
 /* ------------------------------------------------------------ 脑区（含义对应我们自己的模块，规格 §4） */
 const REGIONS = [
-{id:'input',name:'QQ 收消息',color:'#b3a6ff',c:[-230,-250,90],r:[80,48,60],fill:34,
- desc:'白名单内的私聊和群消息先到桥接：写进聊天存档，再决定要不要唤醒她。收到的每条消息在这里闪一下。',
+{id:'input',name:'消息收入',color:'#b3a6ff',c:[-230,-250,90],r:[80,48,60],fill:34,
+ desc:'每条收到的消息先进聊天存档，再决定要不要唤醒她；收到的每条消息在这里闪一下。',
  fns:[
   {name:'聊天存档',desc:'每条收发消息追加进存档（按会话、按月一个文件），单条超 300 字截断；删除用等长墓碑，行号不变。',src:'src/long-memory.js · archive'},
   {name:'唤醒',desc:'被直接找、或二代仿真判断要接话时唤醒她，一次唤醒是一个回合。',src:'src/bridge.js · deliverPromptNow'},
@@ -349,7 +349,7 @@ const REGIONS = [
   {name:'看图',desc:'qq_get_message_images：她自己决定要不要看对方发的图。',src:'src/mcp-snowluma-safe.js'},
   {name:'表情包',desc:'send_sticker：从收藏里挑表情发出去。',src:'src/mcp-snowluma-safe.js'}]},
 {id:'audio',name:'语音',color:'#ff6fae',c:[-445,40,60],r:[55,68,55],fill:30,
- desc:'她发语音时亮（远程 TTS 合成）。收到的语音在这台机器的 QQ 上不能转写，平时暗着。',
+ desc:'她发语音时亮（远程 TTS 合成）。收到的语音在这台机器上不能转写，平时暗着。',
  fns:[
   {name:'语音合成',desc:'qq_tts_voice：文字描述音色 / 预置音色 / 克隆。',src:'src/tts-api.js'},
   {name:'限流',desc:'每分钟最多 2 条、每小时最多 10 条。',params:[['每分钟','2'],['每小时','10']],src:'config.json · socialV2.voice'}]},
@@ -374,7 +374,7 @@ const REGIONS = [
  desc:'人物账本（性格 / 事实 / 经历 / 约定 / 备注）+ 聊天存档切成的话题块 + 每块一句的摘要。按类分扇区，越新越靠里；暗的是快忘了的，灰的是已过时，外圈的是已归档。',
  fns:[]},
 {id:'core',name:'中枢·检索',color:'#ffe57a',c:[30,-262,0],r:[92,45,70],fill:40,
- desc:'她调 qq_history_search / qq_ltm_recall 时亮：五路检索（向量、BM25、约定、摘要、图谱）按名次融合；memory-rag 不在时退回关键词检索。',
+ desc:'她调历史检索 / 账本回想时亮：五路检索（向量、BM25、约定、摘要、图谱）按名次融合；memory-rag 不在时退回关键词检索。',
  fns:[
   {name:'五路融合',desc:'每一路各自排名，再按 RRF（倒数名次）合成一个总名次。',src:'memory-rag · search.py'},
   {name:'关键词降级',desc:'memory-rag 关着或超时时，桥接自己按命中词长 × IDF 打分。',src:'src/long-memory.js · search'},
