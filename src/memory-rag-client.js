@@ -471,7 +471,7 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
   }
 
   /** 失败一律 null；成功时校验 key 一致性，再按 parseData 取字段（不合法就 null）。 */
-  async function postJson(pathname, payload, timeoutMs, parseData) {
+  async function postJson(pathname, payload, timeoutMs, parseData, skipKeyCheck = false) {
     const response = await request(pathname, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -481,7 +481,8 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
     let data;
     try { data = await response.json(); } catch { return null; }
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
-    if (String(data.key ?? '') !== payload.key) {
+    // BRAIN_PATCH：多会话 /graph（keys）与 /chunk 不回 key，跳过检查；其余带 key 接口逐字节不变
+    if (!skipKeyCheck && payload.key !== undefined && String(data.key ?? '') !== payload.key) {
       log(`[rag] 拒绝返回：${pathname} 响应 key 与请求不一致`);
       return null;
     }

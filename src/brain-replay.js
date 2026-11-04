@@ -27,7 +27,7 @@ const PAIR_MS = 5000;      // tool-calls 与轨迹配对的时间窗（任务书
 const DEDUP_MS = 10000;    // 旧文件推出来的事件与轨迹视为同一件事的时间窗
 const DAYS_BACK = 6;       // 今天 + 往前 6 天 = 7 天（轨迹保留 7 天）
 
-const KEY_RE = /^(private|group):\d{1,15}$/;
+const KEY_RE = /^(private|group|chat|persona|device):[\w-]+$/;
 const NODE_RE = /^(ltm|chunk|sum|ent|note|diary|msg|persona):[A-Za-z0-9:_.\-]{1,80}$/;
 const DAY_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const ORIGINS = new Set(['ai', 'bridge', 'console']);
