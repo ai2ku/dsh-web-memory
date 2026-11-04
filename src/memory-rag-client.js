@@ -253,6 +253,8 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
     if (params.expand !== undefined && params.expand !== null && params.expand !== '') {
       payload.expand = clampInt(params.expand, 0, 5, 0);
     }
+    // BRAIN_PATCH：检索演示（/probe）要 ranked / routes；缺省 False，主路径逐字节不变
+    if (params.debug === true) payload.debug = true;
 
     const response = await request('/search', {
       method: 'POST',
@@ -304,6 +306,11 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
     const semantic = typeof data.semantic === 'string' && data.semantic ? data.semantic : 'ok';
     const hint = typeof data.hint === 'string' && data.hint.trim() ? data.hint.trim() : undefined;
     const result = { semantic, ...(hint ? { hint } : {}), items };
+    // BRAIN_PATCH：检索演示要 ranked（名次）/ routes（五路各自命中数）。只 debug 时带。
+    if (params.debug === true) {
+      result.ranked = Array.isArray(data.ranked) ? data.ranked : [];
+      result.routes = data.routes && typeof data.routes === 'object' ? data.routes : {};
+    }
     // 不可枚举：序列化时（日志 / 误发 / JSON.stringify）不会把存档文件名带出去。
     Object.defineProperty(result, 'refs', { value: refs, enumerable: false, writable: false, configurable: false });
     return result;
@@ -566,9 +573,50 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
    * MEMORY_MAP_PATCH：POST /graph —— 记忆星图数据（实体/关系/摘要）。
    * 和 summaries 同一套纪律：key 不合法不发请求；失败返回 null；
    * 返回 { entities, relations, summaries }。
+   * BRAIN_PATCH：传 keys（数组，可为 null=全部）走实时脑图新模式，返回
+   * { chunks, summaries, entities, summary_entities, relations, notes, truncated }。
    */
   async function graph(params = {}) {
     if (!enabled()) return null;
+    // BRAIN_PATCH：实时脑图多会话快照（keys 显式传了）
+    if (params.keys !== undefined) {
+      const keys = params.keys == null ? null : (Array.isArray(params.keys) ? params.keys.map(String).filter((k) => KEY_RE.test(k)) : null);
+      const limit = clampInt(params.limit, 1, 2000, 2000);
+      return postJson('/graph', { keys, limit }, SUMMARIES_TIMEOUT_MS, (data) => {
+        if (!data || data.ok === false) return null;
+        return {
+          chunks: Array.isArray(data.chunks) ? data.chunks.map((c) => ({
+            chunk_id: String(c.chunk_id ?? ''), key: String(c.key ?? ''), day: String(c.day ?? ''),
+            t_start: Number(c.t_start ?? 0), t_end: Number(c.t_end ?? 0), title: String(c.title ?? ''),
+            n_msgs: Number(c.n_msgs ?? 0),
+            speakers: Array.isArray(c.speaker_names) ? c.speaker_names.map(String) : [],
+          })).filter((c) => c.chunk_id && c.key) : [],
+          summaries: Array.isArray(data.summaries) ? data.summaries.map((s) => ({
+            summary_id: String(s.summary_id ?? ''), chunk_id: String(s.chunk_id ?? ''), key: String(s.key ?? ''),
+            day: String(s.day ?? ''), t_start: Number(s.t_start ?? 0), t_end: Number(s.t_end ?? 0),
+            title: String(s.title ?? ''), summary: String(s.summary ?? ''),
+            importance: Number(s.importance ?? 0), valence: Number(s.valence ?? 0),
+          })).filter((s) => s.summary_id) : [],
+          entities: Array.isArray(data.entities) ? data.entities.map((e) => ({
+            entity_id: String(e.entity_id ?? ''), type: String(e.type ?? 'thing'), name: String(e.name ?? ''),
+            qq: e.qq == null ? null : String(e.qq), n: Number(e.n ?? 0),
+          })).filter((e) => e.entity_id && e.name) : [],
+          summary_entities: Array.isArray(data.summary_entities) ? data.summary_entities.map((se) => ({
+            summary_id: String(se.summary_id ?? ''), entity_id: String(se.entity_id ?? ''), key: String(se.key ?? ''),
+          })).filter((se) => se.summary_id && se.entity_id) : [],
+          relations: Array.isArray(data.relations) ? data.relations.map((r) => ({
+            summary_id: String(r.summary_id ?? ''), key: String(r.key ?? ''), src_id: String(r.src_id ?? ''),
+            dst_id: String(r.dst_id ?? ''), relation: String(r.relation ?? ''),
+          })).filter((r) => r.summary_id && r.src_id && r.dst_id) : [],
+          notes: Array.isArray(data.notes) ? data.notes.map((n) => ({
+            note_id: String(n.note_id ?? ''), summary_id: String(n.summary_id ?? ''), key: String(n.key ?? ''),
+            cat: String(n.cat ?? ''), text: String(n.text ?? ''), due: n.due ?? null, created_at: Number(n.created_at ?? 0),
+          })).filter((n) => n.note_id) : [],
+          truncated: data.truncated ?? {},
+        };
+      });
+    }
+    // 旧星图（单会话）
     const key = String(params.key ?? '').trim();
     if (!KEY_RE.test(key)) {
       log('[rag] 拒绝查星图：会话 key 不合法');
@@ -601,6 +649,28 @@ export function createMemoryRagClient({ url = DEFAULT_URL, timeoutMs = DEFAULT_T
           valence: Number(s.valence ?? 0),
           tStart: Number(s.t_start ?? 0),
         })).filter((s) => s.summaryId),
+      };
+    });
+  }
+
+  /**
+   * BRAIN_PATCH：POST /chunk —— 单个话题块的原文（控制台点开某话题块时才取）。
+   * 快照里不含原文；这里按需取。key 不合法 / 不存在 / 失败一律 null。
+   */
+  async function chunk({ key = '', chunkId = '' } = {}) {
+    if (!enabled()) return null;
+    const k = String(key ?? '').trim();
+    const cid = String(chunkId ?? '').trim();
+    if (!KEY_RE.test(k) || !cid) {
+      log('[rag] 拒绝取块原文：key 或 chunk_id 不合法');
+      return null;
+    }
+    return postJson('/chunk', { key: k, chunk_id: cid }, SUMMARIES_TIMEOUT_MS, (data) => {
+      if (!data || data.ok === false || !data.chunk_id) return null;
+      return {
+        chunk_id: String(data.chunk_id ?? ''), key: String(data.key ?? ''), day: String(data.day ?? ''),
+        title: String(data.title ?? ''), t_start: Number(data.t_start ?? 0), t_end: Number(data.t_end ?? 0),
+        n_msgs: Number(data.n_msgs ?? 0), text: String(data.text ?? ''),
       };
     });
   }

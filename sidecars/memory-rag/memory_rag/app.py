@@ -66,6 +66,8 @@ class SearchReq(BaseModel):
     speaker: str = ""
     k: int | None = None
     expand: int | None = None
+    # BRAIN_PATCH：为真时响应多带 ranked / routes（search.py 本来就有）；缺省 False，响应逐字节不变
+    debug: bool = False
 
 
 class ForgetReq(BaseModel):
@@ -298,7 +300,7 @@ def search(req: SearchReq):
         raise HTTPException(503, "该会话有待处理的遗忘请求，稍后再试") from None
     try:
         return svc.searcher.search(req.key, req.query, req.keywords[:12], req.date_from, req.date_to,
-                                   req.speaker, req.k, req.expand)
+                                   req.speaker, req.k, req.expand, debug=req.debug)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
 

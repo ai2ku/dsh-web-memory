@@ -1305,7 +1305,7 @@ async function loadChunk(id, key, box){
     else box.append(el('p', {class:'warn', text: c && c.status === 404 ? '已删除或不可用' : '读取失败，稍后再点一次'}));
   };
   if(chunkCache.has(id)){ show(chunkCache.get(id)); return; }
-  const r = await api('/api/brain/chunk', {method:'POST', body:{node:id, key: key || null}, allow404:true});
+  const r = await api('/dsh-web-memory/api/brain/chunk', {method:'POST', body:{node:id, key: key || null}, allow404:true});
   const c = r.status === 200 && r.data && r.data.ok ? { ok:true, text: r.data.text } : { ok:false, status: r.status };
   if(c.ok || c.status === 404) chunkCache.set(id, c);
   if(selected && selected.id === id) show(c);
@@ -1354,7 +1354,7 @@ async function api(path, opts = {}){
 // 一个允许 404 的接口回了 404：问一下开关，真关了就整页提示
 async function checkOff(){
   try {
-    const r = await fetch('/api/brain/control', { headers: TOKEN ? {'x-console-token': TOKEN} : {}, cache: 'no-store' });
+    const r = await fetch('/dsh-web-memory/api/brain/control', { headers: TOKEN ? {'x-console-token': TOKEN} : {}, cache: 'no-store' });
     if(r.status === 401 || r.status === 403) return FATAL_TOKEN();
     const j = await r.json().catch(() => null);
     if(j && j.enabled === false) FATAL_OFF();
@@ -1369,7 +1369,7 @@ async function loadSnapshot(){
   if(dead) return;
   clearTimeout(snapTimer);
   const seq = ++snapSeq;
-  const r = await api('/api/brain/snapshot' + (filterKey ? '?key=' + encodeURIComponent(filterKey) : ''));
+  const r = await api('/dsh-web-memory/api/brain/snapshot' + (filterKey ? '?key=' + encodeURIComponent(filterKey) : ''));
   if(dead || seq !== snapSeq) return;
   if(r.status !== 200 || !r.data || r.data.ok === false){
     $('stats').textContent = '快照读取失败，3 秒后重试';
@@ -1433,7 +1433,7 @@ function connect(fresh){
   if(filterKey) q.set('key', filterKey);
   if(lastId && !fresh) q.set('lastEventId', String(lastId));
   setConn('', '连接中');
-  const src = new EventSource('/api/brain/events?' + q.toString());
+  const src = new EventSource('/dsh-web-memory/api/brain/events?' + q.toString());
   es = src;
   src.addEventListener('hello', (e) => {
     let h = null; try { h = JSON.parse(e.data); } catch {}
@@ -1459,7 +1459,7 @@ function connect(fresh){
       // 服务端拒了（401 / 404 / 429）或彻底断了：浏览器不会再自己重连，问清楚再决定
       es = null;
       reconnectTimer = setTimeout(async () => {
-        const r = await api('/api/brain/control', {allow404:true});
+        const r = await api('/dsh-web-memory/api/brain/control', {allow404:true});
         if(dead) return;
         if(r.status === 200 && r.data && r.data.enabled === false){ FATAL_OFF(); return; }
         if(r.status === 200) setConn('down', '已断开，重连中（最多 4 个页面同时连）');
@@ -1608,7 +1608,7 @@ $('replayLoad').addEventListener('click', () => loadReplay());
 async function loadReplay(){
   const day = replayDay.value;
   $('replayMsg').textContent = '正在载入…';
-  const r = await api('/api/brain/replay?day=' + encodeURIComponent(day) + (filterKey ? '&key=' + encodeURIComponent(filterKey) : ''));
+  const r = await api('/dsh-web-memory/api/brain/replay?day=' + encodeURIComponent(day) + (filterKey ? '&key=' + encodeURIComponent(filterKey) : ''));
   if(dead) return;
   if(r.status === 400){ $('replayMsg').textContent = '只能回放今天往前 7 天内的日子。'; return; }
   if(r.status !== 200 || !r.data || r.data.ok === false){ $('replayMsg').textContent = '载入失败，稍后再试。'; return; }
@@ -1689,7 +1689,7 @@ async function runProbe(){
   const keywords = $('pkw').value.split(/[\s,，、]+/).map(s => s.trim()).filter(Boolean).slice(0, 12);
   prun.disabled = true; prun.textContent = '检索中…';
   const body = { key, query }; if(keywords.length) body.keywords = keywords;
-  const r = await api('/api/brain/probe', {method:'POST', body});
+  const r = await api('/dsh-web-memory/api/brain/probe', {method:'POST', body});
   clear(presult);
   if(r.status === 429){
     presult.append(el('p', {class:'warn', text:'太快了，2 秒后再试。'}));
@@ -1742,7 +1742,7 @@ async function renderTime(){
   if(curveFor === n.id && curveData){ drawCurveView(n); return; }
   curveFor = n.id; curveData = null; curveDay = 0;
   clear(timeBody).append(el('p', {class:'hint', text:'正在算…'}));
-  const r = await api('/api/brain/decay-curve?unit=' + encodeURIComponent(n.id), {allow404:true});
+  const r = await api('/dsh-web-memory/api/brain/decay-curve?unit=' + encodeURIComponent(n.id), {allow404:true});
   if(curveFor !== n.id) return;
   if(r.status !== 200 || !r.data || r.data.ok === false || !Array.isArray(r.data.points)){
     clear(timeBody).append(el('p', {class:'warn', text: r.status === 404 ? '这条记忆已删除或不可用。' : '读取失败，稍后再试。'})); curveFor = null; return;

@@ -215,7 +215,7 @@ window.__ModuleLoader__.load({
           h('span', { style: { fontSize: '13px', color: 'var(--dsw-alias-label-tertiary, #999)' } }, '跨会话 / 跨设备记忆 + 人格'),
         ),
         h('div', { style: { display: 'flex', gap: '6px', marginBottom: '0' } },
-          tabBtn('overview', '总览'), tabBtn('settings', '设置'), tabBtn('memory', '记忆库'), tabBtn('persona', '人格'), tabBtn('rag', '向量索引'), tabBtn('map', '星图'),
+          tabBtn('overview', '总览'), tabBtn('settings', '设置'), tabBtn('memory', '记忆库'), tabBtn('persona', '人格'), tabBtn('rag', '向量索引'), tabBtn('map', '实时脑图'),
         ),
 
         // 总览
@@ -573,12 +573,12 @@ window.__ModuleLoader__.load({
           })(),
         ) : null,
 
-        // 星图（记忆脑图，iframe 加载独立 HTML）
+        // 实时脑图（iframe 加载独立 HTML）
         tab === 'map' ? h('div', { style: { width: '100%', borderRadius: 'var(--dsw-radius-xl, 12px)', overflow: 'hidden', border: '1px solid var(--dsw-alias-border-l3, #ddd)' } },
           h('iframe', {
-            src: apiUrl('map'),
+            src: apiUrl('brain'),
             style: { width: '100%', height: 'calc(100vh - 160px)', minHeight: '520px', border: 'none', display: 'block', background: '#050918' },
-            title: '记忆星图',
+            title: '实时脑图',
           }),
         ) : null,
       );

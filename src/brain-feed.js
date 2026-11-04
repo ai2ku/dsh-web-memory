@@ -18,7 +18,7 @@ const DAY = 86400000;
 
 // ── 白名单常量（约定 §2 / §3 / §6） ─────────────────────────────────────────
 export const NODE_RE = /^(ltm|chunk|sum|ent|note|diary|msg|persona):[A-Za-z0-9:_.\-]{1,80}$/;
-export const KEY_RE = /^(private|group):\d{1,15}$/;
+export const KEY_RE = /^(private|group|chat|persona|device):\d{1,15}$/;
 const ENUM_RE = /^[a-z0-9._-]{1,32}$/;
 export const ORIGINS = Object.freeze(['ai', 'bridge', 'console']);
 export const REGIONS = Object.freeze(['input', 'vision', 'audio', 'working', 'hippo', 'graph', 'ltm', 'core', 'decay', 'limbic', 'life', 'output', 'introspect']);
