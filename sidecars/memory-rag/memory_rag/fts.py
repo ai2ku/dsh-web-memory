@@ -209,6 +209,13 @@ class ChunkDB:
             n = int(cur.rowcount or 0)
             self.conn.commit()
             self._purge()
+            # SYNC_UPSTREAM_PATCH（对齐上游 v0.5.1「RAG 遗忘后 VACUUM 重写整个库」）：
+            # _purge 的 secure_delete 只把删掉的页清零，页本身仍留在文件里——库不会缩小。
+            # VACUUM 把主库重写成新文件、真正把磁盘空间还给系统，随后再截断一次 VACUUM
+            # 自己写出的 WAL。持同一把锁（理由见 get_meta / stats）且已 commit，可安全执行。
+            # 单会话遗忘触发频次低，整库重写的开销可以接受；换来的是库不再只增不减。
+            self.conn.execute("VACUUM")
+            self.conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
             return n
 
     # ---------------------------------------------------------------- 查询
